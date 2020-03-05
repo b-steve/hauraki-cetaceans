@@ -141,7 +141,7 @@ save(fit.st, sdrep.st, obj.st, file = "fit-st.RData")
 ## than when it's colder. This model should take between 1 hour and 3
 ## hours to fit, at a guess.
 parameters$betas <- fit.st$par[names(fit.st$par) == "betas"]
-parameters$logit_phi <- fit.st$par["logit_phi"]
+parameters$link_phi <- fit.st$par["link_phi"]
 parameters$log_sigma_u_t <- fit.st$par["log_sigma_u_t"]
 parameters$log_kappa_u_s <- fit.st$par["log_kappa_u_s"]
 data$fit_st <- 1
@@ -224,3 +224,4 @@ cols <- rev(brewer.pal(11, "RdBu"))
 image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj)), col = cols)
 points(obs.xc, obs.yc, pch = ".")
 
+save.image("fit-everything.RData")
