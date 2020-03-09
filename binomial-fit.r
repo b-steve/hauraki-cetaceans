@@ -119,14 +119,14 @@ save(fit.fixed, sdrep.fixed, obj.fixed, file = "fit-fixed.RData")
 ## spatial field that varies over time, accounting for spatial and
 ## temporal correlations in sightings. This model will take somewhere
 ## between 30 mins and 2 hours to fit, at a guess.
-parameters$betas <- fit.fixed$par
+parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
 data$fit_st <- 1
 obj.st <- obj.int <- MakeADFun(data = data,
                  parameters = parameters,
-                 random = "u_st",
-                 map = list(u_int = factor(rep(NA, length(parameters$u_int))),
-                            log_kappa_u_int = factor(NA),
-                            log_tau_u_int = factor(NA)),
+                 random = "u_st_all",
+                 map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
+                            log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                            log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int)))),
                  inner.control = list(maxit = 50),
                  DLL = "binomial_fit")
 fit.st <- nlminb(obj.st$par, obj.st$fn, obj.st$gr)
