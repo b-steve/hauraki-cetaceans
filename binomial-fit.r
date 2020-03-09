@@ -104,20 +104,20 @@ parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
                    u_st_all = array(0, dim = c(n.species, n.meshnodes, n.months)),
                    u_int_all = matrix(0, nrow = n.species, ncol = n.meshnodes))
 
-## Making TMB object for fixed-effects only model. This model has no
-## spatiotemporal effects. It only allows sighting probabilities to
-## depend on SST and visitation probabilities. This model should take
-## less than 1 second to fit.
-obj.fixed <- MakeADFun(data = data, parameters = parameters,
-                       map = list(u_st_all = factor(rep(NA, length(parameters$u_st))),
-                                  u_int_all = factor(rep(NA, length(parameters$u_int))),
-                                  link_phi = factor(rep(NA, length(parameters$link_phi))),
-                                  log_sigma_u_t = factor(rep(NA, length(parameters$link_phi))),
-                                  log_kappa_u_s = factor(rep(NA, length(parameters$log_kappa_u_s))),
-                                  log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
-                                  log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int)))),
-                       DLL = "binomial_fit")
 if (do.fixed){
+    ## Making TMB object for fixed-effects only model. This model has no
+    ## spatiotemporal effects. It only allows sighting probabilities to
+    ## depend on SST and visitation probabilities. This model should take
+    ## less than 1 second to fit.
+    obj.fixed <- MakeADFun(data = data, parameters = parameters,
+                           map = list(u_st_all = factor(rep(NA, length(parameters$u_st))),
+                                      u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                      link_phi = factor(rep(NA, length(parameters$link_phi))),
+                                      log_sigma_u_t = factor(rep(NA, length(parameters$link_phi))),
+                                      log_kappa_u_s = factor(rep(NA, length(parameters$log_kappa_u_s))),
+                                      log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                      log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int)))),
+                       DLL = "binomial_fit")
     fit.fixed <- nlminb(obj.fixed$par, obj.fixed$fn, obj.fixed$gr)
     (sdrep.fixed <- sdreport(obj.fixed))
     ## Saving the fixed-effects model.
@@ -132,15 +132,15 @@ if (do.fixed){
 ## between 30 mins and 2 hours to fit, at a guess.
 parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
 data$fit_st <- 1
-obj.st <- obj.int <- MakeADFun(data = data,
-                 parameters = parameters,
-                 random = "u_st_all",
-                 map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
-                            log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
-                            log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int)))),
-                 inner.control = list(maxit = 50),
-                 DLL = "binomial_fit")
 if (do.st){
+    obj.st <- obj.int <- MakeADFun(data = data,
+                                   parameters = parameters,
+                                   random = "u_st_all",
+                                   map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                              log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                              log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int)))),
+                                   inner.control = list(maxit = 50),
+                                   DLL = "binomial_fit")
     fit.st <- nlminb(obj.st$par, obj.st$fn, obj.st$gr)
     (sdrep.st <- sdreport(obj.st))
     ## Saving the spatiotemporal model.
@@ -164,12 +164,12 @@ parameters$log_sigma_u_t <- fit.st$par[names(fit.st$par) == "log_sigma_u_t"]
 parameters$log_kappa_u_s <- fit.st$par[names(fit.st$par) == "log_kappa_u_s"]
 data$fit_st <- 1
 data$fit_int <- 1
-obj.int <- MakeADFun(data = data,
-                 parameters = parameters,
-                 random = c("u_st_all", "u_int_all"),
-                 inner.control = list(maxit = 50),
-                 DLL = "binomial_fit")
 if (do.int){
+    obj.int <- MakeADFun(data = data,
+                         parameters = parameters,
+                         random = c("u_st_all", "u_int_all"),
+                         inner.control = list(maxit = 50),
+                         DLL = "binomial_fit")
     fit.int <- nlminb(obj.int$par, obj.int$fn, obj.int$gr)
     (sdrep.int <- sdreport(obj.int))
     ## Saving the full model with the temperature-interaction field.
@@ -189,13 +189,13 @@ if (do.summary){
     2*fit.st$objective + 2*length(fit.st$par) ## Spatiotemporal model.
     2*fit.int$objective + 2*length(fit.int$par) ## Spatiotemporal model with space-temperature interaction.
     
-    obj <- obj.int
-    sdrep <- sdrep.int
+    obj <- obj.st
+    sdrep <- sdrep.st
     ## Collecting random and reported summaries.
     rand.summary <- summary(sdrep, type = "random")
     rep.summary <- summary(sdrep, type = "report")
     ## Extracting esimated random temporal process.
-    u.st.est <- matrix(rand.summary[rownames(rand.summary) == "u_st", 1],
+    u.st.est <- matrix(rand.summary[rownames(rand.summary) == "u_st_all", 1],
                        nrow = n.meshnodes, ncol = n.months)
     ## Extracting spatiotemporal estimates of sighting probabilities given
     ## visitation.
