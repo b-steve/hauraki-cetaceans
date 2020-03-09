@@ -61,8 +61,10 @@ dyn.load(dynlib("binomial_fit"))
 
 ## Total number of rows.
 n <- nrow(new.df3)
-## Number of trips with sightings for each row.
-y <- new.df3$n.trips
+## Number of trips with sightings for each row and each species.
+y <- as.matrix(new.df3[, c(8:11, 15)])
+## Number of species.
+n.species <- ncol(y)
 ## Number of trips for each row.
 n.trials <- new.df3$total.trips
 
@@ -78,7 +80,8 @@ mat <- mat.pred[month.id, ]
 ## Cell visitation probabilities.
 v <- new.df3$av.vesselprob
 ## Putting it all in a list.
-data <- list(n = n, y = y, n_trials = n.trials, mat = mat,
+data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
+             n_betas = ncol(mat), mat = mat,
              ssts = ssts, ssts_centred = ssts.centred, v = v,
              month_id = month.id - 1, mesh_id = mesh$idx$loc - 1,
              n_months = n.months, n_meshnodes = n.meshnodes,
@@ -87,25 +90,25 @@ data <- list(n = n, y = y, n_trials = n.trials, mat = mat,
              spde = spde$param.inla[c("M0","M1","M2")],
              fit_st = 0, fit_int = 0)
 ## Parameters for TMB.
-parameters <- list(betas = numeric(ncol(mat)),
-                   link_phi = 0, log_sigma_u_t = 0,
-                   log_kappa_u_s = 0,
-                   log_kappa_u_int = 0, log_tau_u_int = 0,
-                   u_st = matrix(0, nrow = n.meshnodes, ncol = n.months),
-                   u_int = numeric(n.meshnodes))
+parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
+                   link_phi = numeric(n.species), log_sigma_u_t = numeric(n.species),
+                   log_kappa_u_s = numeric(n.species),
+                   log_kappa_u_int = numeric(n.species), log_tau_u_int = numeric(n.species),
+                   u_st_all = array(0, dim = c(n.species, n.meshnodes, n.months)),
+                   u_int_all = matrix(0, nrow = n.species, ncol = n.meshnodes))
 
 ## Making TMB object for fixed-effects only model. This model has no
 ## spatiotemporal effects. It only allows sighting probabilities to
 ## depend on SST and visitation probabilities. This model should take
 ## less than 1 second to fit.
 obj.fixed <- MakeADFun(data = data, parameters = parameters,
-                       map = list(u_st = factor(rep(NA, length(parameters$u_st))),
-                                  u_int = factor(rep(NA, length(parameters$u_int))),
-                                  link_phi = factor(NA),
-                                  log_sigma_u_t = factor(NA),
-                                  log_kappa_u_s = factor(NA),
-                                  log_kappa_u_int = factor(NA),
-                                  log_tau_u_int = factor(NA)),
+                       map = list(u_st_all = factor(rep(NA, length(parameters$u_st))),
+                                  u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                  link_phi = factor(rep(NA, length(parameters$link_phi))),
+                                  log_sigma_u_t = factor(rep(NA, length(parameters$link_phi))),
+                                  log_kappa_u_s = factor(rep(NA, length(parameters$log_kappa_u_s))),
+                                  log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                  log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int)))),
                        DLL = "binomial_fit")
 fit.fixed <- nlminb(obj.fixed$par, obj.fixed$fn, obj.fixed$gr)
 (sdrep.fixed <- sdreport(obj.fixed))
