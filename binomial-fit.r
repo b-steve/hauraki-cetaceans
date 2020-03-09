@@ -143,7 +143,7 @@ save(fit.st, sdrep.st, obj.st, file = "fit-st.RData")
 ## if animals tend to be found in different places when it's warmer
 ## than when it's colder. This model should take between 1 hour and 3
 ## hours to fit, at a guess.
-parameters$betas <- fit.st$par[names(fit.st$par) == "betas"]
+parameters$betas <- matrix(fit.st$par[names(fit.st$par) == "betas"], nrow = n.species, ncol = ncol(mat))
 parameters$link_phi <- fit.st$par["link_phi"]
 parameters$log_sigma_u_t <- fit.st$par["log_sigma_u_t"]
 parameters$log_kappa_u_s <- fit.st$par["log_kappa_u_s"]
@@ -151,7 +151,7 @@ data$fit_st <- 1
 data$fit_int <- 1
 obj.int <- MakeADFun(data = data,
                  parameters = parameters,
-                 random = c("u_st", "u_int"),
+                 random = c("u_st_all", "u_int_all"),
                  inner.control = list(maxit = 50),
                  DLL = "binomial_fit")
 ## Fitting the model.
