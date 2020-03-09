@@ -169,13 +169,15 @@ obj.int <- MakeADFun(data = data,
                  random = c("u_st_all", "u_int_all"),
                  inner.control = list(maxit = 50),
                  DLL = "binomial_fit")
-## Fitting the model.
-fit.int <- nlminb(obj.int$par, obj.int$fn, obj.int$gr)
-## Creating SDREPORT object and viewing coefficients and standard errors.
-(sdrep.int <- sdreport(obj.int))
-## Saving the full model with the temperature-interaction field.
-save(fit.int, sdrep.int, obj.int, file = "fit-int.RData")
-
+if (do.int){
+    fit.int <- nlminb(obj.int$par, obj.int$fn, obj.int$gr)
+    (sdrep.int <- sdreport(obj.int))
+    ## Saving the full model with the temperature-interaction field.
+    save(fit.int, sdrep.int, obj.int, file = "fit-int.RData")
+} else {
+    load("fit-int.RData")
+}
+    
 if (do.summary){
     ## Loading in models, if they've been fitted in a previous R session.
     load("fit-fixed.RData")
