@@ -8,10 +8,10 @@ library(RColorBrewer)
 ## file.
 do.fixed <- TRUE
 do.fixed.p <- TRUE
-do.st <- FALSE
-do.st.p <- FALSE
-do.int <- FALSE
-do.int.p <- FALSE
+do.st <- TRUE
+do.st.p <- TRUE
+do.int <- TRUE
+do.int.p <- TRUE
 do.summary <- FALSE
 
 ## Loading in the data.
@@ -153,7 +153,7 @@ if (do.fixed){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.fixed <- plogis(obj.fixed$report()$d_full_logit)
     ## Saving the fixed-effects model.
-    save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed, file = "fit-fixed-p.RData")
+    save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed, file = "fit-fixed.RData")
 } else {
     load("fit-fixed.RData")
 }
