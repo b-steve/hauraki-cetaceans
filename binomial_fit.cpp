@@ -23,6 +23,10 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ssts);
   // Centred SSTs.
   DATA_VECTOR(ssts_centred);
+  // Julian month in radians for each observation.
+  DATA_VECTOR(jmonth_rad);
+  // Julian month in radians for each month.
+  DATA_VECTOR(month_jmonth_rad);
   // Visitation probabilities.
   DATA_VECTOR(v);
   // Month ID for each observation.
@@ -52,6 +56,8 @@ Type objective_function<Type>::operator() ()
   // Parameters for the SST-interaction spatial field.
   PARAMETER_VECTOR(log_kappa_u_int);
   PARAMETER_VECTOR(log_tau_u_int);
+  // Horizontal shift for seasonal interaction term.
+  PARAMETER_VECTOR(link_gamma);
   // Array of spatiotemporal field random variables.
   PARAMETER_ARRAY(u_st_all);
   // Vector of SST-interaction spatial field.
@@ -62,6 +68,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> kappa_u_s = exp(log_kappa_u_s);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
+  vector<Type> gamma = exp(link_gamma/3.141593)/(1 + exp(link_gamma/3.141593));
   ADREPORT(phi);
   ADREPORT(sigma_u_t);
   ADREPORT(kappa_u_s);
@@ -90,12 +97,24 @@ Type objective_function<Type>::operator() ()
     vector<Type> p(n);
     d_fixed_logit = mat*betas_s;
     for (int i = 0; i < n; i++){
-      d2(i) = d_fixed_logit(i) + u_st(mesh_id(i), month_id(i)) + ssts_centred(i)*u_int(mesh_id(i))/tau_u_int(s);
+      d2(i) = d_fixed_logit(i) + u_st(mesh_id(i), month_id(i));
+      // Addint contribution from u_int.
+      if (fit_int == 1){
+	d2(i) += ssts_centred(i)*u_int(mesh_id(i))/tau_u_int(s);
+      } else if (fit_int == 2){
+	d2(i) += sin(jmonth_rad(i) - gamma(s))*u_int(mesh_id(i))/tau_u_int(s);
+      }
     }
     d_fixed_logit_pred = mat_pred*betas_s;
     for (int i = 0; i < n_meshnodes; i++){
       for (int j = 0; j < n_months; j++){
-	d_full_logit(s,i,j) = d_fixed_logit_pred(j) + u_st(i, j) + month_temp_centred(j)*u_int(i)/tau_u_int(s);
+	d_full_logit(s,i,j) = d_fixed_logit_pred(j) + u_st(i, j);
+	// Adding contribution from u_int.
+	if (fit_int == 1){
+	  d_full_logit(s,i,j) += month_temp_centred(j)*u_int(i)/tau_u_int(s);
+	} else if (fit_int == 2){
+	  d_full_logit(s,i,j) += sin(month_jmonth_rad(j) - gamma(s))*u_int(i)/tau_u_int(s);
+	}
       }
     }
     p = v*exp(d2)/(1 + exp(d2));    
@@ -114,7 +133,7 @@ Type objective_function<Type>::operator() ()
       f_all(s) += SEPARABLE(SCALE(AR1(phi(s)),sigma_u_t(s)), GMRF(Q))(u_st);
     }
     // Component due to SST-interaction spatial field.
-    if (fit_int == 1){
+    if (fit_int > 0){
       SparseMatrix<Type> Q_int = Q_spde(spde,kappa_u_int(s));
       f_all(s) += GMRF(Q_int)(u_int);
     }
