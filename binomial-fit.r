@@ -218,7 +218,7 @@ if (do.st){
 ## by using a sinosoidal function of time-of-year instead of
 ## temperature. This model will take somewhere between 30 mins and 2
 ## hours to fit, at a guess.
-parameters.p$betas <- matrix(fit.fixed.p$par, nrow = n.species, ncol = ncol(mat))
+parameters.p$betas <- matrix(fit.fixed.p$par, nrow = n.species, ncol = ncol(mat.p))
 data.p$fit_st <- 1
 if (do.st.p){
     obj.st.p <- MakeADFun(data = data.p,
@@ -281,7 +281,7 @@ if (do.int){
 ## sinosoidal function of time-of-year instead of temperature for both
 ## the fixed and interaction effects. This model will take somewhere
 ## between 30 mins and 2 hours to fit, at a guess.
-parameters.p$betas <- matrix(fit.st.p$par[names(fit.st.p$par) == "betas"], nrow = n.species, ncol = ncol(mat))
+parameters.p$betas <- matrix(fit.st.p$par[names(fit.st.p$par) == "betas"], nrow = n.species, ncol = ncol(mat.p))
 parameters.p$link_phi <- fit.st.p$par[names(fit.st.p$par) == "link_phi"]
 parameters.p$log_sigma_u_t <- fit.st.p$par[names(fit.st.p$par) == "log_sigma_u_t"]
 parameters.p$log_kappa_u_s <- fit.st.p$par[names(fit.st.p$par) == "log_kappa_u_s"]
