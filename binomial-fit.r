@@ -291,7 +291,6 @@ if (do.int.p){
     obj.int.p <- MakeADFun(data = data.p,
                          parameters = parameters.p,
                          random = c("u_st_all", "u_int_all"),
-                         map = list(link_gamma = factor(rep(NA, length(parameters.p$link_gamma)))),
                          inner.control = list(maxit = 50),
                          DLL = "binomial_fit")
     ## Fitting the model.
