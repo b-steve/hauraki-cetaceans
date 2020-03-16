@@ -68,11 +68,13 @@ Type objective_function<Type>::operator() ()
   vector<Type> kappa_u_s = exp(log_kappa_u_s);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
-  vector<Type> gamma = exp(link_gamma/3.141593)/(1 + exp(link_gamma/3.141593));
+  vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma))
   ADREPORT(phi);
   ADREPORT(sigma_u_t);
   ADREPORT(kappa_u_s);
   ADREPORT(kappa_u_int);
+  ADREPORT(tau_u_int);
+  ADREPORT(gamma);
   vector<Type> f_all(n_species);
   array<Type> d_full_logit(n_species,n_meshnodes,n_months);
   for (int s = 0; s < n_species; s++){
@@ -102,7 +104,7 @@ Type objective_function<Type>::operator() ()
       if (fit_int == 1){
 	d2(i) += ssts_centred(i)*u_int(mesh_id(i))/tau_u_int(s);
       } else if (fit_int == 2){
-	d2(i) += sin(jmonth_rad(i) - gamma(s))*u_int(mesh_id(i))/tau_u_int(s);
+	d2(i) += cos(jmonth_rad(i) - gamma(s))*u_int(mesh_id(i))/tau_u_int(s);
       }
     }
     d_fixed_logit_pred = mat_pred*betas_s;
@@ -113,7 +115,7 @@ Type objective_function<Type>::operator() ()
 	if (fit_int == 1){
 	  d_full_logit(s,i,j) += month_temp_centred(j)*u_int(i)/tau_u_int(s);
 	} else if (fit_int == 2){
-	  d_full_logit(s,i,j) += sin(month_jmonth_rad(j) - gamma(s))*u_int(i)/tau_u_int(s);
+	  d_full_logit(s,i,j) += cos(month_jmonth_rad(j) - gamma(s))*u_int(i)/tau_u_int(s);
 	}
       }
     }
