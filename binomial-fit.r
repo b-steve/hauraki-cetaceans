@@ -6,12 +6,12 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- TRUE
-do.fixed.p <- TRUE
-do.st <- TRUE
-do.st.p <- TRUE
-do.int <- TRUE
-do.int.p <- TRUE
+do.fixed <- FALSE
+do.fixed.p <- FALSE
+do.st <- FALSE
+do.st.p <- FALSE
+do.int <- FALSE
+do.int.p <- FALSE
 do.summary <- FALSE
 
 ## Loading in the data.
@@ -131,6 +131,8 @@ data.p$mat_pred <- mat.pred.p
 parameters.p <- parameters
 parameters.p$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.p))
 
+## Loading test fits.
+load("test.RData")
 if (do.fixed){
     ## Making TMB object for fixed-effects only model. This model has no
     ## spatiotemporal effects. It only allows sighting probabilities to
@@ -154,8 +156,6 @@ if (do.fixed){
     d.full.fixed <- plogis(obj.fixed$report()$d_full_logit)
     ## Saving the fixed-effects model.
     save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed, file = "fit-fixed.RData")
-} else {
-    load("fit-fixed.RData")
 }
 
 if (do.fixed.p){
@@ -182,8 +182,6 @@ if (do.fixed.p){
     d.full.fixed.p <- plogis(obj.fixed.p$report()$d_full_logit)
     ## Saving the fixed-effects model.
     save(fit.fixed.p, sdrep.fixed.p, obj.fixed.p, d.full.fixed.p, file = "fit-fixed-p.RData")
-} else {
-    load("fit-fixed-p.RData")
 }
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
@@ -210,8 +208,6 @@ if (do.st){
     d.full.st <- plogis(obj.st$report()$d_full_logit)
     ## Saving the spatiotemporal model.
     save(fit.st, sdrep.st, obj.st, d.full.st, file = "fit-st.RData")
-} else {
-    load("fit-st.RData")
 }
 
 ## Making TMB object for spatiotemporal model, similar to above, but
@@ -238,8 +234,6 @@ if (do.st.p){
     d.full.st.p <- plogis(obj.st.p$report()$d_full_logit)
     ## Saving the spatiotemporal model.
     save(fit.st.p, sdrep.st.p, obj.st.p, d.full.st.p, file = "fit-st-p.RData")
-} else {
-    load("fit-st-p.RData")
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -272,8 +266,6 @@ if (do.int){
     d.full.int <- plogis(obj.int$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     save(fit.int, sdrep.int, obj.int, d.full.int, file = "fit-int.RData")
-} else {
-    load("fit-int.RData")
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -301,8 +293,6 @@ if (do.int.p){
     d.full.int.p <- plogis(obj.int.p$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p, file = "fit-int-p.RData")
-} else {
-    load("fit-int-p.RData")
 }
 
 if (do.summary){
