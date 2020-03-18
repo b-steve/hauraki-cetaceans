@@ -298,21 +298,27 @@ if (do.int.p){
 if (do.summary){
     ## Loading in models, if they've been fitted in a previous R session.
     load("fit-fixed.RData")
+    load("fit-fixed-p.RData")
     load("fit-st.RData")
+    load("fit-st-p.RData")
     load("fit-int.RData")
+    load("fit-int-p.RData")
     
     ## Comparing models by AIC.
     2*fit.fixed$objective + 2*length(fit.fixed$par) ## Fixed-effects model.
+    2*fit.fixed.p$objective + 2*length(fit.fixed.p$par) ## ... with periodic regression.
     2*fit.st$objective + 2*length(fit.st$par) ## Spatiotemporal model.
+    2*fit.st.p$objective + 2*length(fit.st.p$par) ## ... with periodic regression.
     2*fit.int$objective + 2*length(fit.int$par) ## Spatiotemporal model with space-temperature interaction.
+    2*fit.int.p$objective + 2*length(fit.int.p$par) ## ... with periodic regression and with a space-time interaction via a sinusoidal function.
 
     ## Choose a species.
-    s <- 2
+    s <- 1
 
     ## Select a model.
-    obj <- obj.st
-    sdrep <- sdrep.st
-    d.full <- d.full.st[s, , ]
+    obj <- obj.int
+    sdrep <- sdrep.int
+    d.full <- d.full.int[s, , ]
     ## Collecting random and reported summaries.
     rand.summary <- summary(sdrep, type = "random")
     rep.summary <- summary(sdrep, type = "report")
@@ -353,12 +359,19 @@ if (do.summary){
     ## affected by changing tempartures. Red locations have increased
     ## sighting probabilities as temperatures increase, blue areas have
     ## increased sighting probabilities as temperature decreases.
-    u.int.est <- rand.summary[rownames(rand.summary) == "u_int", 1]
+    s <- 3
+    par(mfrow = c(1, 2))
+    u.int.est <- matrix(rand.summary[rownames(rand.summary) == "u_int_all", 1], nrow = 5)[s, ]
     proj <- inla.mesh.projector(mesh)
     field.proj <- inla.mesh.project(proj, u.int.est)
     cols <- rev(brewer.pal(11, "RdBu"))
     image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj)), col = cols)
     points(obs.xc, obs.yc, pch = ".")
+    ## Plotting related sinusoidal function.
+    gamma <- rep.summary[rownames(rep.summary) == "gamma", 1][s]
+    xx <- seq(0, 2*pi, length.out = 1000)
+    yy <- cos(xx - gamma)
+    plot(xx, yy, type = "l")
     
     save.image("fit-everything.RData")
 }
