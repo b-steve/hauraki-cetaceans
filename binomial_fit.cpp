@@ -68,7 +68,7 @@ Type objective_function<Type>::operator() ()
   vector<Type> kappa_u_s = exp(log_kappa_u_s);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
-  vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma))
+  vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
   ADREPORT(phi);
   ADREPORT(sigma_u_t);
   ADREPORT(kappa_u_s);
