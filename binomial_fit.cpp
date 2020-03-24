@@ -80,7 +80,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> tau_u_int = exp(log_tau_u_int);
   vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
   ADREPORT(rho);
-  ADREPORT(tau_u);
+  ADREPORT(tau_epsilon);
+  ADREPORT(tau_omega);
   ADREPORT(kappa_u_s);
   ADREPORT(kappa_u_int);
   ADREPORT(tau_u_int);
@@ -90,7 +91,7 @@ Type objective_function<Type>::operator() ()
   // Assembling the loadings matrix.
   matrix<Type> L_mat(n_species, n_factors);
   int k = 0;
-  for (int i = 0; i < n_factors){
+  for (int i = 0; i < n_factors; i++){
     for (int j = 0; j < n_species; j++){
       if (j >= i){
 	L_mat(j, i) = L_val(k);
@@ -106,6 +107,7 @@ Type objective_function<Type>::operator() ()
   // Assembling the latent factors.
   array<Type> epsilon(n_factors, n_meshnodes, n_months);
   matrix<Type> omega(n_factors, n_meshnodes);
+  array<Type> psi_st(n_factors, n_meshnodes, n_months);
   for (int k = 0; k < n_factors; k++){
     for (int i = 0; i < n_meshnodes; i++){
       omega(k, i) = omega_input(k, i)/tau_omega(k);
@@ -119,7 +121,7 @@ Type objective_function<Type>::operator() ()
 	psi_st(k, i, j) = phi(k)*pow(rho(k), j) + // Temporal autocorrelation term.
 	  epsilon(k, i, j) + // Spatiotemporal residual term.
 	  alpha(k)/(1 - rho(k)) + // Unknown term I don't understand (diff in height for each field?)
-	  omega(k, i)/(1 - rho(k_)); // Spatial variance term.
+	  omega(k, i)/(1 - rho(k)); // Spatial variance term.
       }
     }
   }
@@ -129,14 +131,14 @@ Type objective_function<Type>::operator() ()
     y_s = y.col(s);
     vector<Type> betas_s(n_betas);
     betas_s = betas.row(s);
-    // Filling latent variables for variable s.
+    // Filling latent variables for species s.
     array<Type> u_st(n_meshnodes, n_months);
     vector<Type> u_int(n_meshnodes);
     for (int i = 0; i < n_meshnodes; i++){
       u_int(i) = u_int_all(s, i);
       for (int j = 0; j < n_months; j++){
 	u_st(i, j) = 0.0;
-	for (int k = 0; k < nfactors; k++){
+	for (int k = 0; k < n_factors; k++){
 	  u_st(i, j) += psi_st(k, i, j)*L_mat(s, k);
 	}
       }
@@ -149,7 +151,7 @@ Type objective_function<Type>::operator() ()
     d_fixed_logit = mat*betas_s;
     for (int i = 0; i < n; i++){
       d2(i) = d_fixed_logit(i) + u_st(mesh_id(i), month_id(i));
-      // Addint contribution from u_int.
+      // Adding contribution from u_int.
       if (fit_int == 1){
 	d2(i) += ssts_centred(i)*u_int(mesh_id(i))/tau_u_int(s);
       } else if (fit_int == 2){
@@ -178,18 +180,24 @@ Type objective_function<Type>::operator() ()
       dummy_n = n_trials(i);
       f_all(s) -= dbinom(dummy_y, dummy_n, p(i), true);
     }
-    // Component due to spatiotemporal field.
-    if (fit_st == 1){
-      SparseMatrix<Type> Q = Q_spde(spde,kappa_u_s(s));
-      f_all(s) += SEPARABLE(AR1(rho(s)), GMRF(Q))(u_st);
-    }
-    // Component due to SST-interaction spatial field.
+    // Component due to interaction spatial field.
     if (fit_int > 0){
-      SparseMatrix<Type> Q_int = Q_spde(spde,kappa_u_int(s));
+      SparseMatrix<Type> Q_int = Q_spde(spde, kappa_u_int(s));
       f_all(s) += GMRF(Q_int)(u_int);
     }
   }
-  REPORT(f_all);
+  // Component due to spatiotemporal factor fields.
+  if (fit_st == 1){
+    array<Type> epsilon_tmp(n_meshnodes, n_months);
+    for (int k = 0; k < n_factors; k++){
+      for (int i = 0; i < n_meshnodes; i++){
+	for (int j = 0; j < n_months; j++){
+	  epsilon_tmp(i, j) = epsilon_input(k, i, j);
+	}
+      }
+      SparseMatrix<Type> Q = Q_spde(spde, kappa_u_s(k));
+    }
+  }
   REPORT(d_full_logit);
   // Returning negative of the joint density.
   Type f = sum(f_all);
