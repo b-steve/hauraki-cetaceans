@@ -211,7 +211,7 @@ Type objective_function<Type>::operator() ()
 	}
       }
       SparseMatrix<Type> Q = Q_spde(spde, kappa_epsilon(k));
-      f_factors(k) = SEPARABLE(AR1(rho(k)), GMRF(Q))(epsilon_tmp);
+      f_factors(k) += SEPARABLE(AR1(rho(k)), GMRF(Q))(epsilon_tmp);
     }
   }
   REPORT(d_full_logit);
