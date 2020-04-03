@@ -44,7 +44,8 @@ Type objective_function<Type>::operator() ()
   // Something something SPDE (needs demystifying).
   DATA_STRUCT(spde,spde_t);
   // Indicators for spatial fields.
-  DATA_INTEGER(fit_st);
+  DATA_INTEGER(fit_epsilon);
+  DATA_INTEGER(fit_omega);
   DATA_INTEGER(fit_int);
   // Number of latent factor fields.
   DATA_INTEGER(n_factors);
@@ -196,22 +197,26 @@ Type objective_function<Type>::operator() ()
     }
   }
   // Component due to spatiotemporal factor fields.
-  if (fit_st == 1){
+  if (fit_epsilon + fit_omega > 0){
     array<Type> epsilon_tmp(n_meshnodes, n_months);
     SparseMatrix<Type> Q;
     for (int k = 0; k < n_factors; k++){
       f_factors(k) = 0.0;
       // For the omega field.
-      Q = Q_spde(spde, kappa_omega(k));
-      f_factors(k) += GMRF(Q)(omega_input.row(k));
-      // For the epsilon field.
-      for (int i = 0; i < n_meshnodes; i++){
-	for (int j = 0; j < n_months; j++){
-	  epsilon_tmp(i, j) = epsilon_input(k, i, j);
-	}
+      if (fit_omega == 1){
+	Q = Q_spde(spde, kappa_omega(k));
+	f_factors(k) += GMRF(Q)(omega_input.row(k));
       }
-      SparseMatrix<Type> Q = Q_spde(spde, kappa_epsilon(k));
-      f_factors(k) += SEPARABLE(AR1(rho(k)), GMRF(Q))(epsilon_tmp);
+      // For the epsilon field.
+      if (fit_epsilon){
+	for (int i = 0; i < n_meshnodes; i++){
+	  for (int j = 0; j < n_months; j++){
+	    epsilon_tmp(i, j) = epsilon_input(k, i, j);
+	  }
+	}
+	SparseMatrix<Type> Q = Q_spde(spde, kappa_epsilon(k));
+	f_factors(k) += SEPARABLE(AR1(rho(k)), GMRF(Q))(epsilon_tmp);
+      }
     }
   }
   REPORT(d_full_logit);

@@ -6,9 +6,9 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- FALSE
-do.fixed.p <- FALSE
-do.st <- FALSE
+do.fixed <- TRUE
+do.fixed.p <- TRUE
+do.st <- TRUE
 do.st.p <- FALSE
 do.int <- FALSE
 do.int.p <- FALSE
@@ -132,7 +132,7 @@ data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              month_temp_centred = month.temp.centred,
              mat_pred = mat.pred,
              spde = spde$param.inla[c("M0","M1","M2")],
-             fit_st = 0, fit_int = 0, n_factors = n.factors)
+             fit_omega = 0, fit_epsilon = 0, fit_int = 0, n_factors = n.factors)
 ## Parameters for TMB.
 parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
                    phi = numeric(n.factors),
@@ -224,7 +224,8 @@ if (do.fixed.p){
 ## spatial field that varies over time, accounting for spatial and
 ## temporal correlations in sightings.
 parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
-data$fit_st <- 1
+data$fit_epsilon <- 1
+data$fit_omega <- 1
 if (do.st){
     obj.st <- MakeADFun(data = data,
                         parameters = parameters,
@@ -233,10 +234,10 @@ if (do.st){
                                    log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
                                    log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
                                    link_gamma = factor(rep(NA, length(parameters$link_gamma))),
-                                   alpha = factor(rep(NA, length(parameters$alpha))),
-                                   L_val = factor(rep(NA, length(parameters$L_val)))),
+                                   alpha = factor(rep(NA, length(parameters$alpha)))),
                         inner.control = list(maxit = 50),
                         DLL = "binomial_fit")
+    obj.st$env$tracepar <- TRUE
     ## Fitting the model.
     fit.st <- nlminb(obj.st$par, obj.st$fn, obj.st$gr)
     ## Getting sdreport.
