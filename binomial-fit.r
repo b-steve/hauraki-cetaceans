@@ -101,27 +101,6 @@ mat <- mat.pred[month.id, ]
 mat.p <- mat.pred.p[month.id, ]
 ## Cell visitation probabilities.
 v <- new.df3$av.vesselprob
-## Setting the number of latent factor fields.
-n.factors <- n.species
-## Reconstructing L_mat based on L_val.
-L.val <- numeric(n.factors*n.species - sum(1:n.factors - 1))
-k <- 1
-for (i in 1:n.factors){
-    L.val[k] <- 1
-    k <- k + n.species - i + 1
-}
-L.mat <- matrix(0, nrow = n.species, ncol = n.factors)
-k <- 1
-for (i in 1:n.factors){
-    for (j in 1:n.species){
-        if (j >= i){
-            L.mat[j, i] <- L.val[k]
-            k <- k + 1
-        } else {
-            L.mat[j, i] <- 0
-        }
-    }
-}
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              n_betas = ncol(mat), mat = mat,
@@ -132,21 +111,16 @@ data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              month_temp_centred = month.temp.centred,
              mat_pred = mat.pred,
              spde = spde$param.inla[c("M0","M1","M2")],
-             fit_st = 0, fit_int = 0, n_factors = n.factors)
+             fit_st = 0, fit_int = 0)
 ## Parameters for TMB.
 parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
-                   phi = numeric(n.factors),
-                   link_rho = numeric(n.factors),
-                   alpha = numeric(n.factors),
-                   log_kappa_epsilon = numeric(n.factors),
-                   log_kappa_omega = numeric(n.factors),
-                   log_lambda = numeric(n.factors),
+                   link_phi = numeric(n.species),
+                   log_sigma_u_t = numeric(n.species),
+                   log_kappa_u_s = numeric(n.species),
                    log_kappa_u_int = numeric(n.species),
                    log_tau_u_int = numeric(n.species),
                    link_gamma = numeric(n.species),
-                   L_val = L.val,
-                   epsilon_input = array(0, dim = c(n.factors, n.meshnodes, n.months)),
-                   omega_input = matrix(0, nrow = n.factors, ncol = n.meshnodes),
+                   u_st_all = array(0, dim = c(n.species, n.meshnodes, n.months)),
                    u_int_all = matrix(0, nrow = n.species, ncol = n.meshnodes))
 ## Data for periodic regression.
 data.p <- data
@@ -165,19 +139,14 @@ if (do.fixed){
     ## depend on SST and visitation probabilities. This model should take
     ## less than 1 second to fit.
     obj.fixed <- MakeADFun(data = data, parameters = parameters,
-                           map = list(epsilon_input = factor(rep(NA, length(parameters$epsilon_input))),
-                                      omega_input = factor(rep(NA, length(parameters$omega_input))),
+                           map = list(u_st_all = factor(rep(NA, length(parameters$u_st))),
                                       u_int_all = factor(rep(NA, length(parameters$u_int))),
-                                      phi = factor(rep(NA, length(parameters$phi))),
-                                      link_rho = factor(rep(NA, length(parameters$link_rho))),
-                                      alpha = factor(rep(NA, length(parameters$alpha))),
-                                      log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
-                                      log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
-                                      log_lambda = factor(rep(NA, length(parameters$log_lambda))),
+                                      link_phi = factor(rep(NA, length(parameters$link_phi))),
+                                      log_sigma_u_t = factor(rep(NA, length(parameters$link_phi))),
+                                      log_kappa_u_s = factor(rep(NA, length(parameters$log_kappa_u_s))),
                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
-                                      link_gamma = factor(rep(NA, length(parameters$link_gamma))),
-                                      L_val = factor(rep(NA, length(parameters$L_val)))),
+                                      link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                            DLL = "binomial_fit")
     ## Fitting the model.
     fit.fixed <- nlminb(obj.fixed$par, obj.fixed$fn, obj.fixed$gr)
@@ -196,19 +165,14 @@ if (do.fixed.p){
     ## visitation probabilities. This model should take less than 1
     ## second to fit.
     obj.fixed.p <- MakeADFun(data = data.p, parameters = parameters.p,
-                             map = list(epsilon_input = factor(rep(NA, length(parameters$epsilon_input))),
-                                        omega_input = factor(rep(NA, length(parameters$omega_input))),
-                                        u_int_all = factor(rep(NA, length(parameters$u_int))),
-                                        phi = factor(rep(NA, length(parameters$phi))),
-                                        link_rho = factor(rep(NA, length(parameters$link_rho))),
-                                        alpha = factor(rep(NA, length(parameters$alpha))),
-                                        log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
-                                        log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
-                                        log_lambda = factor(rep(NA, length(parameters$log_lambda))),
-                                        log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
-                                        log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
-                                        link_gamma = factor(rep(NA, length(parameters$link_gamma))),
-                                        L_val = factor(rep(NA, length(parameters$L_val)))),
+                             map = list(u_st_all = factor(rep(NA, length(parameters.p$u_st))),
+                                        u_int_all = factor(rep(NA, length(parameters.p$u_int))),
+                                        link_phi = factor(rep(NA, length(parameters.p$link_phi))),
+                                        log_sigma_u_t = factor(rep(NA, length(parameters.p$link_phi))),
+                                        log_kappa_u_s = factor(rep(NA, length(parameters.p$log_kappa_u_s))),
+                                        log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
+                                        log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
+                                        link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                              DLL = "binomial_fit")
     ## Fitting the model.
     fit.fixed.p <- nlminb(obj.fixed.p$par, obj.fixed.p$fn, obj.fixed.p$gr)
@@ -222,21 +186,20 @@ if (do.fixed.p){
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
 ## spatial field that varies over time, accounting for spatial and
-## temporal correlations in sightings.
+## temporal correlations in sightings. This model will take somewhere
+## between 30 mins and 2 hours to fit, at a guess.
 parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
 data$fit_st <- 1
 if (do.st){
-    obj.st <- MakeADFun(data = data,
-                        parameters = parameters,
-                        random = "u_st_all",
-                        map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
-                                   log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
-                                   log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
-                                   link_gamma = factor(rep(NA, length(parameters$link_gamma))),
-                                   alpha = factor(rep(NA, length(parameters$alpha))),
-                                   L_val = factor(rep(NA, length(parameters$L_val)))),
-                        inner.control = list(maxit = 50),
-                        DLL = "binomial_fit")
+    obj.st <- obj.int <- MakeADFun(data = data,
+                                   parameters = parameters,
+                                   random = "u_st_all",
+                                   map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                              log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                              log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                              link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                                   inner.control = list(maxit = 50),
+                                   DLL = "binomial_fit")
     ## Fitting the model.
     fit.st <- nlminb(obj.st$par, obj.st$fn, obj.st$gr)
     ## Getting sdreport.
