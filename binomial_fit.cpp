@@ -56,7 +56,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(alpha);
   PARAMETER_VECTOR(log_kappa_epsilon);
   PARAMETER_VECTOR(log_kappa_omega);
-  PARAMETER_VECTOR(log_lambda);
+  PARAMETER_VECTOR(log_lambda_epsilon);
+  PARAMETER_VECTOR(log_lambda_omega);
   // Parameters for the SST-interaction spatial field.
   PARAMETER_VECTOR(log_kappa_u_int);
   PARAMETER_VECTOR(log_tau_u_int);
@@ -74,14 +75,11 @@ Type objective_function<Type>::operator() ()
   vector<Type> rho = 2*exp(link_rho)/(1 + exp(link_rho)) - 1;
   vector<Type> kappa_epsilon = exp(log_kappa_epsilon);
   vector<Type> kappa_omega = exp(log_kappa_omega);
-  vector<Type> lambda = exp(log_lambda);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
   vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
   ADREPORT(rho);
-  ADREPORT(kappa_epsilon);
-  ADREPORT(kappa_omega);
-  ADREPORT(lambda);
+  ADREPORT(kappa_u_s);
   ADREPORT(kappa_u_int);
   ADREPORT(tau_u_int);
   ADREPORT(gamma);
@@ -108,11 +106,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> log_tau_epsilon(n_factors);
   vector<Type> log_tau_omega(n_factors);
   for (int k = 0; k < n_factors; k++){
-    log_tau_omega(k) = 0.5*(log(1.0 + lambda(k)) - log(4.0*M_PI*exp(2.0*log_kappa_omega(k))*pow(1 - rho(k), 2)));
-    log_tau_epsilon(k) = log_tau_omega(k) + log(1 - rho(k)) + log_kappa_omega(k) - log_kappa_epsilon(k) - 0.5*log(lambda(k)*(1 - pow(rho(k), 2)));
+    log_tau_epsilon(k) = 
   }
-  vector<Type> tau_epsilon = exp(log_tau_epsilon);
-  vector<Type> tau_omega = exp(log_tau_omega);
   // Assembling the latent factors.
   array<Type> epsilon(n_factors, n_meshnodes, n_months);
   matrix<Type> omega(n_factors, n_meshnodes);
@@ -202,7 +197,7 @@ Type objective_function<Type>::operator() ()
     for (int k = 0; k < n_factors; k++){
       f_factors(k) = 0.0;
       // For the omega field.
-      Q = Q_spde(spde, kappa_omega(k));
+      Q = Q_spde(spde, kappa_u_s(k));
       f_factors(k) += GMRF(Q)(omega_input.row(k));
       // For the epsilon field.
       for (int i = 0; i < n_meshnodes; i++){
@@ -210,7 +205,7 @@ Type objective_function<Type>::operator() ()
 	  epsilon_tmp(i, j) = epsilon_input(k, i, j);
 	}
       }
-      SparseMatrix<Type> Q = Q_spde(spde, kappa_epsilon(k));
+      SparseMatrix<Type> Q = Q_spde(spde, kappa_u_s(k));
       f_factors(k) = SEPARABLE(AR1(rho(k)), GMRF(Q))(epsilon_tmp);
     }
   }
