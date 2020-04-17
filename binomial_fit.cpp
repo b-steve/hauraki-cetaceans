@@ -53,11 +53,11 @@ Type objective_function<Type>::operator() ()
   // Parameters for the latent factor fields.
   PARAMETER_VECTOR(phi);
   PARAMETER_VECTOR(link_rho);
+  PARAMETER_VECTOR(log_tau_epsilon);
+  PARAMETER_VECTOR(log_tau_omega);
   PARAMETER_VECTOR(alpha);
-  PARAMETER_VECTOR(log_kappa_epsilon);
-  PARAMETER_VECTOR(log_kappa_omega);
-  PARAMETER_VECTOR(log_lambda_epsilon);
-  PARAMETER_VECTOR(log_lambda_omega);
+  // Parameter for the spatial GMRF.
+  PARAMETER_VECTOR(log_kappa_u_s);
   // Parameters for the SST-interaction spatial field.
   PARAMETER_VECTOR(log_kappa_u_int);
   PARAMETER_VECTOR(log_tau_u_int);
@@ -73,18 +73,20 @@ Type objective_function<Type>::operator() ()
   PARAMETER_MATRIX(u_int_all);
   // Transforming parameters.
   vector<Type> rho = 2*exp(link_rho)/(1 + exp(link_rho)) - 1;
-  vector<Type> kappa_epsilon = exp(log_kappa_epsilon);
-  vector<Type> kappa_omega = exp(log_kappa_omega);
+  vector<Type> tau_epsilon = exp(log_tau_epsilon);
+  vector<Type> tau_omega = exp(log_tau_omega);
+  vector<Type> kappa_u_s = exp(log_kappa_u_s);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
   vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
   ADREPORT(rho);
+  ADREPORT(tau_epsilon);
+  ADREPORT(tau_omega);
   ADREPORT(kappa_u_s);
   ADREPORT(kappa_u_int);
   ADREPORT(tau_u_int);
   ADREPORT(gamma);
-  vector<Type> f_species(n_species);
-  vector<Type> f_factors(n_factors);
+  vector<Type> f_all(n_species);
   array<Type> d_full_logit(n_species,n_meshnodes,n_months);
   // Assembling the loadings matrix.
   matrix<Type> L_mat(n_species, n_factors);
@@ -102,12 +104,6 @@ Type objective_function<Type>::operator() ()
   // Can rotate the L_mat matrix as per supplementary materials of
   // Thorson et al. (2015), but yet to implement this yet.
 
-  // Calculating tau for omega and epsilon fields.
-  vector<Type> log_tau_epsilon(n_factors);
-  vector<Type> log_tau_omega(n_factors);
-  for (int k = 0; k < n_factors; k++){
-    log_tau_epsilon(k) = 
-  }
   // Assembling the latent factors.
   array<Type> epsilon(n_factors, n_meshnodes, n_months);
   matrix<Type> omega(n_factors, n_meshnodes);
@@ -177,40 +173,33 @@ Type objective_function<Type>::operator() ()
     p = v*exp(d2)/(1 + exp(d2));    
     Type dummy_y;
     Type dummy_n;
-    f_species(s) = 0;
+    f_all(s) = 0;
     // Component due to f(y | u).
     for (int i = 0; i < n; i++){
       dummy_y = y_s(i);
       dummy_n = n_trials(i);
-      f_species(s) -= dbinom(dummy_y, dummy_n, p(i), true);
+      f_all(s) -= dbinom(dummy_y, dummy_n, p(i), true);
     }
     // Component due to interaction spatial field.
     if (fit_int > 0){
       SparseMatrix<Type> Q_int = Q_spde(spde, kappa_u_int(s));
-      f_species(s) += GMRF(Q_int)(u_int);
+      f_all(s) += GMRF(Q_int)(u_int);
     }
   }
   // Component due to spatiotemporal factor fields.
   if (fit_st == 1){
     array<Type> epsilon_tmp(n_meshnodes, n_months);
-    SparseMatrix<Type> Q;
     for (int k = 0; k < n_factors; k++){
-      f_factors(k) = 0.0;
-      // For the omega field.
-      Q = Q_spde(spde, kappa_u_s(k));
-      f_factors(k) += GMRF(Q)(omega_input.row(k));
-      // For the epsilon field.
       for (int i = 0; i < n_meshnodes; i++){
 	for (int j = 0; j < n_months; j++){
 	  epsilon_tmp(i, j) = epsilon_input(k, i, j);
 	}
       }
       SparseMatrix<Type> Q = Q_spde(spde, kappa_u_s(k));
-      f_factors(k) = SEPARABLE(AR1(rho(k)), GMRF(Q))(epsilon_tmp);
     }
   }
   REPORT(d_full_logit);
   // Returning negative of the joint density.
-  Type f = sum(f_species) + sum(f_factors);
+  Type f = sum(f_all);
   return f;
 }
