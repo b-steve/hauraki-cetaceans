@@ -46,16 +46,11 @@ Type objective_function<Type>::operator() ()
   // Indicators for spatial fields.
   DATA_INTEGER(fit_st);
   DATA_INTEGER(fit_int);
-  // Number of latent factor fields.
-  DATA_INTEGER(n_factors);
   // Vector of coefficients.
   PARAMETER_MATRIX(betas);
-  // Parameters for the latent factor fields.
-  PARAMETER_VECTOR(phi);
-  PARAMETER_VECTOR(link_rho);
-  PARAMETER_VECTOR(log_tau_epsilon);
-  PARAMETER_VECTOR(log_tau_omega);
-  PARAMETER_VECTOR(alpha);
+  // Parameters for the AR(1) process.
+  PARAMETER_VECTOR(link_phi);
+  PARAMETER_VECTOR(log_sigma_u_t);
   // Parameter for the spatial GMRF.
   PARAMETER_VECTOR(log_kappa_u_s);
   // Parameters for the SST-interaction spatial field.
@@ -63,82 +58,38 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(log_tau_u_int);
   // Horizontal shift for seasonal interaction term.
   PARAMETER_VECTOR(link_gamma);
-  // Values in loading matrix.
-  PARAMETER_VECTOR(L_val);
-  // Array of epsilon-field values.
-  PARAMETER_ARRAY(epsilon_input);
-  // Array of omega-field values.
-  PARAMETER_MATRIX(omega_input);
+  // Array of spatiotemporal field random variables.
+  PARAMETER_ARRAY(u_st_all);
   // Vector of SST-interaction spatial field.
   PARAMETER_MATRIX(u_int_all);
   // Transforming parameters.
-  vector<Type> rho = 2*exp(link_rho)/(1 + exp(link_rho)) - 1;
-  vector<Type> tau_epsilon = exp(log_tau_epsilon);
-  vector<Type> tau_omega = exp(log_tau_omega);
+  vector<Type> phi = 2*exp(link_phi)/(1 + exp(link_phi)) - 1;
+  vector<Type> sigma_u_t = exp(log_sigma_u_t);
   vector<Type> kappa_u_s = exp(log_kappa_u_s);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
   vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
-  ADREPORT(rho);
-  ADREPORT(tau_u);
+  ADREPORT(phi);
+  ADREPORT(sigma_u_t);
   ADREPORT(kappa_u_s);
   ADREPORT(kappa_u_int);
   ADREPORT(tau_u_int);
   ADREPORT(gamma);
   vector<Type> f_all(n_species);
   array<Type> d_full_logit(n_species,n_meshnodes,n_months);
-  // Assembling the loadings matrix.
-  matrix<Type> L_mat(n_species, n_factors);
-  int k = 0;
-  for (int i = 0; i < n_factors){
-    for (int j = 0; j < n_species; j++){
-      if (j >= i){
-	L_mat(j, i) = L_val(k);
-	k++;
-      } else {
-	L_mat(j, i) = 0.0;
-      }
-    }
-  }
-  // Can rotate the L_mat matrix as per supplementary materials of
-  // Thorson et al. (2015), but yet to implement this yet.
-
-  // Assembling the latent factors.
-  array<Type> epsilon(n_factors, n_meshnodes, n_months);
-  matrix<Type> omega(n_factors, n_meshnodes);
-  for (int k = 0; k < n_factors; k++){
-    for (int i = 0; i < n_meshnodes; i++){
-      omega(k, i) = omega_input(k, i)/tau_omega(k);
-      for (int j = 0; j < n_months; j++){
-	// Constructing the latent epsilon field from inputs.
-	epsilon(k, i, j) = epsilon_input(k, i, j)/tau_epsilon(k);
-	// Don't really know what is going on here, but I think it is
-	// some clever construction of the latent factor fields that
-	// helps with computational efficiency. Something or other
-	// about Gompertz processes?
-	psi_st(k, i, j) = phi(k)*pow(rho(k), j) + // Temporal autocorrelation term.
-	  epsilon(k, i, j) + // Spatiotemporal residual term.
-	  alpha(k)/(1 - rho(k)) + // Unknown term I don't understand (diff in height for each field?)
-	  omega(k, i)/(1 - rho(k_)); // Spatial variance term.
-      }
-    }
-  }
   for (int s = 0; s < n_species; s++){
     // Extracting species-specific stuff.
     vector<Type> y_s(n);
     y_s = y.col(s);
     vector<Type> betas_s(n_betas);
     betas_s = betas.row(s);
-    // Filling latent variables for variable s.
+    // Filling latent variables.
     array<Type> u_st(n_meshnodes, n_months);
     vector<Type> u_int(n_meshnodes);
     for (int i = 0; i < n_meshnodes; i++){
       u_int(i) = u_int_all(s, i);
       for (int j = 0; j < n_months; j++){
-	u_st(i, j) = 0.0;
-	for (int k = 0; k < nfactors; k++){
-	  u_st(i, j) += psi_st(k, i, j)*L_mat(s, k);
-	}
+	u_st(i, j) = u_st_all(s, i, j);
       }
     }
     // Calculating fitted probabilities.
@@ -181,7 +132,7 @@ Type objective_function<Type>::operator() ()
     // Component due to spatiotemporal field.
     if (fit_st == 1){
       SparseMatrix<Type> Q = Q_spde(spde,kappa_u_s(s));
-      f_all(s) += SEPARABLE(AR1(rho(s)), GMRF(Q))(u_st);
+      f_all(s) += SEPARABLE(SCALE(AR1(phi(s)),sigma_u_t(s)), GMRF(Q))(u_st);
     }
     // Component due to SST-interaction spatial field.
     if (fit_int > 0){
