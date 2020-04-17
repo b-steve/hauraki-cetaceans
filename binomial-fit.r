@@ -228,7 +228,7 @@ data$fit_st <- 1
 if (do.st){
     obj.st <- MakeADFun(data = data,
                         parameters = parameters,
-                        random = c("epsilon_input", "omega_input"),
+                        random = "u_st_all",
                         map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
                                    log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
                                    log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
