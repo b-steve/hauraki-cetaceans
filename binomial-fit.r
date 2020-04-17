@@ -394,22 +394,48 @@ if (do.summary){
     dev.off()
     
     ## This is the plot of how sighting probabilities across space are
-    ## affected by changing tempartures. Red locations have increased
-    ## sighting probabilities as temperatures increase, blue areas have
-    ## increased sighting probabilities as temperature decreases.
-    s <- 3
-    par(mfrow = c(1, 2))
-    u.int.est <- matrix(rand.summary[rownames(rand.summary) == "u_int_all", 1], nrow = 5)[s, ]
+    ## affected by changing tempartures (for model int) or
+    ## time-of-year (model int.p). Red locations have increased
+    ## sighting probabilities as temperatures increase, blue areas
+    ## have increased sighting probabilities as temperature decreases
+    ## (for model int).
+
+    ## Collecting summaries.
+    rand.summary.int <- summary(sdrep.int, type = "random")
+    rep.summary.int <- summary(sdrep.int, type = "report")
+    rand.summary.int.p <- summary(sdrep.int.p, type = "random")
+    rep.summary.int.p <- summary(sdrep.int.p, type = "report")
+
+    ## Choose a species.
+    s <- 1
+    ## Getting taus.
+    tau.u.int <- exp(rep.summary.int[rownames(rep.summary.int) == "log_tau_u_int", 1])[s]
+    tau.u.int.p <- exp(rep.summary.int.p[rownames(rep.summary.int.p) == "log_tau_u_int", 1])[s]
+    ## Side-by-side plots for models int and int.p.
+    par(mfrow = c(2, 2))
+    u.int.est <- matrix(rand.summary.int[rownames(rand.summary.int) == "u_int_all", 1],
+                        nrow = 5)[s, ]/tau.u.int
+    u.int.est.p <- matrix(rand.summary.int.p[rownames(rand.summary.int.p) == "u_int_all", 1],
+                          nrow = 5)[s, ]/tau.u.int.p
     proj <- inla.mesh.projector(mesh)
-    field.proj <- inla.mesh.project(proj, u.int.est)
+    field.proj.int <- inla.mesh.project(proj, u.int.est)
+    field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
     cols <- rev(brewer.pal(11, "RdBu"))
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj)), col = cols)
-    points(obs.xc, obs.yc, pch = ".")
+    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int)), col = cols)
+    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int.p)), col = cols)
+    #points(obs.xc, obs.yc, pch = ".")
+    ## Plotting average temperature for each month.
+    average.month.temp <- numeric(12)
+    for (i in 1:12){
+        average.month.temp[i] <- mean(month.temp[jmonth == i])
+    }
+    plot(average.month.temp, type = "l")
     ## Plotting related sinusoidal function.
-    gamma <- rep.summary[rownames(rep.summary) == "gamma", 1][s]
+    gamma <- rep.summary.int.p[rownames(rep.summary.int.p) == "gamma", 1][s]
     xx <- seq(0, 2*pi, length.out = 1000)
     yy <- cos(xx - gamma)
     plot(xx, yy, type = "l")
+
     
     save.image("fit-everything.RData")
 }
