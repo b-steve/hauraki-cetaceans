@@ -111,16 +111,22 @@ data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              month_temp_centred = month.temp.centred,
              mat_pred = mat.pred,
              spde = spde$param.inla[c("M0","M1","M2")],
-             fit_st = 0, fit_int = 0)
+             fit_psi = 0, fit_omega = 0, fit_epsilon = 0, fit_int = 0)
 ## Parameters for TMB.
 parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
-                   link_phi = numeric(n.species),
-                   log_sigma_u_t = numeric(n.species),
-                   log_kappa_u_s = numeric(n.species),
+                   link_phi_psi = numeric(n.species),
+                   log_sigma_psi = numeric(n.species),
+                   log_kappa_omega = numeric(n.species),
+                   log_sigma_omega = numeric(n.species),
+                   link_phi_epsilon = numeric(n.species),
+                   log_sigma_epsilon = numeric(n.species),
+                   log_kappa_epsilon = numeric(n.species),
                    log_kappa_u_int = numeric(n.species),
                    log_tau_u_int = numeric(n.species),
                    link_gamma = numeric(n.species),
-                   u_st_all = array(0, dim = c(n.species, n.meshnodes, n.months)),
+                   psi_t_all = matrix(0, nrow = n.species, ncol = n.months),
+                   omega_s_all = matrix(0, nrow = n.species, ncol = n.meshnodes),
+                   epsilon_st_all = array(0, dim = c(n.species, n.meshnodes, n.months)),
                    u_int_all = matrix(0, nrow = n.species, ncol = n.meshnodes))
 ## Data for periodic regression.
 data.p <- data
@@ -139,11 +145,17 @@ if (do.fixed){
     ## depend on SST and visitation probabilities. This model should take
     ## less than 1 second to fit.
     obj.fixed <- MakeADFun(data = data, parameters = parameters,
-                           map = list(u_st_all = factor(rep(NA, length(parameters$u_st))),
+                           map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                      omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                      epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
                                       u_int_all = factor(rep(NA, length(parameters$u_int))),
-                                      link_phi = factor(rep(NA, length(parameters$link_phi))),
-                                      log_sigma_u_t = factor(rep(NA, length(parameters$link_phi))),
-                                      log_kappa_u_s = factor(rep(NA, length(parameters$log_kappa_u_s))),
+                                      link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                      log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                      log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                      log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                      link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                      log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                      log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
@@ -159,17 +171,23 @@ if (do.fixed){
 }
 
 if (do.fixed.p){
-    ## Making TMB object for fixed-effects only model with peridic
+    ## Making TMB object for fixed-effects only model with periodic
     ## regression. This model has no spatiotemporal effects. It only
     ## allows sighting probabilities to depend on month of year and
     ## visitation probabilities. This model should take less than 1
     ## second to fit.
     obj.fixed.p <- MakeADFun(data = data.p, parameters = parameters.p,
-                             map = list(u_st_all = factor(rep(NA, length(parameters.p$u_st))),
-                                        u_int_all = factor(rep(NA, length(parameters.p$u_int))),
-                                        link_phi = factor(rep(NA, length(parameters.p$link_phi))),
-                                        log_sigma_u_t = factor(rep(NA, length(parameters.p$link_phi))),
-                                        log_kappa_u_s = factor(rep(NA, length(parameters.p$log_kappa_u_s))),
+                             map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                        omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                        epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                        u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                        link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                        log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                        log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                        log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                        link_phi_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                        log_sigma_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                        log_kappa_epsilon = factor(rep(NA, length(parameters.p$log_kappa_epsilon))),
                                         log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
                                         log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
                                         link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
@@ -189,12 +207,18 @@ if (do.fixed.p){
 ## temporal correlations in sightings. This model will take somewhere
 ## between 30 mins and 2 hours to fit, at a guess.
 parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
-data$fit_st <- 1
+data$fit_epsilon <- 1
 if (do.st){
     obj.st <- obj.int <- MakeADFun(data = data,
                                    parameters = parameters,
-                                   random = "u_st_all",
-                                   map = list(u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                   random = "epsilon_st_all",
+                                   map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                              omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                              u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                              link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                              log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                              log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                              log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
                                               log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
                                               log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
                                               link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
@@ -215,11 +239,11 @@ if (do.st){
 ## temperature. This model will take somewhere between 30 mins and 2
 ## hours to fit, at a guess.
 parameters.p$betas <- matrix(fit.fixed.p$par, nrow = n.species, ncol = ncol(mat.p))
-data.p$fit_st <- 1
+data.p$fit_epsilon <- 1
 if (do.st.p){
     obj.st.p <- MakeADFun(data = data.p,
                           parameters = parameters.p,
-                          random = "u_st_all",
+                          random = "epsilon_st_all",
                           map = list(u_int_all = factor(rep(NA, length(parameters.p$u_int))),
                                      log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
                                      log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
@@ -246,15 +270,15 @@ if (do.st.p){
 ## than when it's colder. This model should take between 1 hour and 3
 ## hours to fit, at a guess.
 parameters$betas <- matrix(fit.st$par[names(fit.st$par) == "betas"], nrow = n.species, ncol = ncol(mat))
-parameters$link_phi <- fit.st$par[names(fit.st$par) == "link_phi"]
-parameters$log_sigma_u_t <- fit.st$par[names(fit.st$par) == "log_sigma_u_t"]
-parameters$log_kappa_u_s <- fit.st$par[names(fit.st$par) == "log_kappa_u_s"]
-data$fit_st <- 1
+parameters$link_phi_epsilon <- fit.st$par[names(fit.st$par) == "link_phi_epsilon"]
+parameters$log_sigma_epsilon <- fit.st$par[names(fit.st$par) == "log_sigma_epsilon"]
+parameters$log_kappa_epsilon <- fit.st$par[names(fit.st$par) == "log_kappa_epsilon"]
+data$fit_epsilon <- 1
 data$fit_int <- 1
 if (do.int){
     obj.int <- MakeADFun(data = data,
                          parameters = parameters,
-                         random = c("u_st_all", "u_int_all"),
+                         random = c("epsilon_st_all", "u_int_all"),
                          map = list(link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                          inner.control = list(maxit = 50),
                          DLL = "binomial_fit")
@@ -274,15 +298,15 @@ if (do.int){
 ## the fixed and interaction effects. This model will take somewhere
 ## between 30 mins and 2 hours to fit, at a guess.
 parameters.p$betas <- matrix(fit.st.p$par[names(fit.st.p$par) == "betas"], nrow = n.species, ncol = ncol(mat.p))
-parameters.p$link_phi <- fit.st.p$par[names(fit.st.p$par) == "link_phi"]
-parameters.p$log_sigma_u_t <- fit.st.p$par[names(fit.st.p$par) == "log_sigma_u_t"]
-parameters.p$log_kappa_u_s <- fit.st.p$par[names(fit.st.p$par) == "log_kappa_u_s"]
-data.p$fit_st <- 1
+parameters.p$link_phi_epsilon <- fit.st.p$par[names(fit.st.p$par) == "link_phi_epsilon"]
+parameters.p$log_sigma_epsilon <- fit.st.p$par[names(fit.st.p$par) == "log_sigma_epsilon"]
+parameters.p$log_kappa_epsilon <- fit.st.p$par[names(fit.st.p$par) == "log_kappa_epsilon"]
+data.p$fit_epsilon <- 1
 data.p$fit_int <- 2
 if (do.int.p){
     obj.int.p <- MakeADFun(data = data.p,
                          parameters = parameters.p,
-                         random = c("u_st_all", "u_int_all"),
+                         random = c("epsilon_st_all", "u_int_all"),
                          inner.control = list(maxit = 50),
                          DLL = "binomial_fit")
     ## Fitting the model.

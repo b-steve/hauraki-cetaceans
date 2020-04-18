@@ -43,35 +43,55 @@ Type objective_function<Type>::operator() ()
   DATA_MATRIX(mat_pred);
   // Something something SPDE (needs demystifying).
   DATA_STRUCT(spde,spde_t);
-  // Indicators for spatial fields.
-  DATA_INTEGER(fit_st);
+  // Indicators for latent variables.
+  DATA_INTEGER(fit_psi);
+  DATA_INTEGER(fit_omega);
+  DATA_INTEGER(fit_epsilon);
   DATA_INTEGER(fit_int);
   // Vector of coefficients.
   PARAMETER_MATRIX(betas);
-  // Parameters for the AR(1) process.
-  PARAMETER_VECTOR(link_phi);
-  PARAMETER_VECTOR(log_sigma_u_t);
-  // Parameter for the spatial GMRF.
-  PARAMETER_VECTOR(log_kappa_u_s);
+  // Parameters for the AR(1) psi process.
+  PARAMETER_VECTOR(link_phi_psi);
+  PARAMETER_VECTOR(log_sigma_psi);
+  // Parameters for the omega spatial process.
+  PARAMETER_VECTOR(log_kappa_omega);
+  PARAMETER_VECTOR(log_sigma_omega);
+  // Parameters for the AR(1) part of the epsilon process.
+  PARAMETER_VECTOR(link_phi_epsilon);
+  PARAMETER_VECTOR(log_sigma_epsilon);
+  // Parameter for the spatial GMRF of the epsilon process.
+  PARAMETER_VECTOR(log_kappa_epsilon);
   // Parameters for the SST-interaction spatial field.
   PARAMETER_VECTOR(log_kappa_u_int);
   PARAMETER_VECTOR(log_tau_u_int);
   // Horizontal shift for seasonal interaction term.
   PARAMETER_VECTOR(link_gamma);
+  // Vector of temporal process random variables.
+  PARAMETER_MATRIX(psi_t_all);
+  // Array of omega spatial process random variables.
+  PARAMETER_MATRIX(omega_s_all);
   // Array of spatiotemporal field random variables.
-  PARAMETER_ARRAY(u_st_all);
+  PARAMETER_ARRAY(epsilon_st_all);
   // Vector of SST-interaction spatial field.
   PARAMETER_MATRIX(u_int_all);
   // Transforming parameters.
-  vector<Type> phi = 2*exp(link_phi)/(1 + exp(link_phi)) - 1;
-  vector<Type> sigma_u_t = exp(log_sigma_u_t);
-  vector<Type> kappa_u_s = exp(log_kappa_u_s);
+  vector<Type> phi_psi = 2*exp(link_phi_psi)/(1 + exp(link_phi_psi)) - 1;
+  vector<Type> sigma_psi = exp(log_sigma_psi);
+  vector<Type> kappa_omega = exp(log_kappa_omega);
+  vector<Type> sigma_omega = exp(log_sigma_omega);
+  vector<Type> phi_epsilon = 2*exp(link_phi_epsilon)/(1 + exp(link_phi_epsilon)) - 1;
+  vector<Type> sigma_epsilon = exp(log_sigma_epsilon);
+  vector<Type> kappa_epsilon = exp(log_kappa_epsilon);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
   vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
-  ADREPORT(phi);
-  ADREPORT(sigma_u_t);
-  ADREPORT(kappa_u_s);
+  ADREPORT(phi_psi);
+  ADREPORT(sigma_psi);
+  ADREPORT(kappa_omega);
+  ADREPORT(sigma_omega);
+  ADREPORT(phi_epsilon);
+  ADREPORT(sigma_epsilon);
+  ADREPORT(kappa_epsilon);
   ADREPORT(kappa_u_int);
   ADREPORT(tau_u_int);
   ADREPORT(gamma);
@@ -84,12 +104,18 @@ Type objective_function<Type>::operator() ()
     vector<Type> betas_s(n_betas);
     betas_s = betas.row(s);
     // Filling latent variables.
-    array<Type> u_st(n_meshnodes, n_months);
+    vector<Type> psi_t(n_months);
+    vector<Type> omega_s(n_meshnodes);
+    array<Type> epsilon_st(n_meshnodes, n_months);
     vector<Type> u_int(n_meshnodes);
     for (int i = 0; i < n_meshnodes; i++){
+      omega_s(i) = omega_s_all(s, i);
       u_int(i) = u_int_all(s, i);
       for (int j = 0; j < n_months; j++){
-	u_st(i, j) = u_st_all(s, i, j);
+	if (i == 0){
+	  psi_t(j) = psi_t_all(s, j);
+	}
+	epsilon_st(i, j) = epsilon_st_all(s, i, j);
       }
     }
     // Calculating fitted probabilities.
@@ -99,7 +125,7 @@ Type objective_function<Type>::operator() ()
     vector<Type> p(n);
     d_fixed_logit = mat*betas_s;
     for (int i = 0; i < n; i++){
-      d2(i) = d_fixed_logit(i) + u_st(mesh_id(i), month_id(i));
+      d2(i) = d_fixed_logit(i) + psi_t(month_id(i)) + omega_s(mesh_id(i)) + epsilon_st(mesh_id(i), month_id(i));
       // Addint contribution from u_int.
       if (fit_int == 1){
 	d2(i) += ssts_centred(i)*u_int(mesh_id(i))/tau_u_int(s);
@@ -110,7 +136,7 @@ Type objective_function<Type>::operator() ()
     d_fixed_logit_pred = mat_pred*betas_s;
     for (int i = 0; i < n_meshnodes; i++){
       for (int j = 0; j < n_months; j++){
-	d_full_logit(s,i,j) = d_fixed_logit_pred(j) + u_st(i, j);
+	d_full_logit(s,i,j) = d_fixed_logit_pred(j) + epsilon_st(i, j);
 	// Adding contribution from u_int.
 	if (fit_int == 1){
 	  d_full_logit(s,i,j) += month_temp_centred(j)*u_int(i)/tau_u_int(s);
@@ -129,10 +155,19 @@ Type objective_function<Type>::operator() ()
       dummy_n = n_trials(i);
       f_all(s) -= dbinom(dummy_y, dummy_n, p(i), true);
     }
-    // Component due to spatiotemporal field.
-    if (fit_st == 1){
-      SparseMatrix<Type> Q = Q_spde(spde,kappa_u_s(s));
-      f_all(s) += SEPARABLE(SCALE(AR1(phi(s)),sigma_u_t(s)), GMRF(Q))(u_st);
+    // Component due to temopral psi field.
+    if (fit_psi == 1){
+      f_all(s) += SCALE(AR1(phi_psi(s)),sigma_psi(s))(psi_t);
+    }
+    // Component due to spatial omega field.
+    if (fit_omega == 1){
+      SparseMatrix<Type> Q_omega = Q_spde(spde,kappa_omega(s));
+      f_all(s) += SCALE(GMRF(Q_omega), sigma_omega(s))(omega_s);
+    }
+    // Component due to spatiotemporal epsilon field.
+    if (fit_epsilon == 1){
+      SparseMatrix<Type> Q_epsilon = Q_spde(spde,kappa_epsilon(s));
+      f_all(s) += SEPARABLE(SCALE(AR1(phi_epsilon(s)),sigma_epsilon(s)), GMRF(Q_epsilon))(epsilon_st);
     }
     // Component due to SST-interaction spatial field.
     if (fit_int > 0){
