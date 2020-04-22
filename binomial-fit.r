@@ -11,6 +11,7 @@ do.fixed.p <- FALSE
 do.st <- FALSE
 do.st.p <- FALSE
 do.int <- FALSE
+do.int.psi <- FALSE
 do.int.p <- FALSE
 do.summary <- FALSE
 
@@ -34,7 +35,6 @@ for (i in years){
         current.id <- current.id + 1
     }
 }
-
 
 ## Starting at August 2000 and ending in June 2019.
 monthyear.id <- monthyear.id[-c(1:7, 235:240)]
@@ -304,6 +304,37 @@ if (do.int){
     save(fit.int, sdrep.int, obj.int, d.full.int, file = "fit-int.RData")
 }
 
+## Same as above, but with the spatiotemporal field separated into three parts.
+parameters$betas <- matrix(fit.int$par[names(fit.int$par) == "betas"], nrow = n.species, ncol = ncol(mat))
+parameters$link_phi_epsilon <- fit.int$par[names(fit.int$par) == "link_phi_epsilon"]
+parameters$log_sigma_epsilon <- fit.int$par[names(fit.int$par) == "log_sigma_epsilon"]
+parameters$log_kappa_epsilon <- fit.int$par[names(fit.int$par) == "log_kappa_epsilon"]
+parameters$log_tau_u_int <- fit.int$par[names(fit.int$par) == "log_tau_u_int"]
+parameters$log_kappa_u_int <- fit.int$par[names(fit.int$par) == "log_kappa_u_int"]
+data$fit_psi <- 1
+data$fit_omega <- 0
+data$fit_epsilon <- 1
+data$fit_int <- 1
+if (do.int.psi){
+    obj.int.psi <- MakeADFun(data = data,
+                         parameters = parameters,
+                         random = c("psi_t_all", "epsilon_st_all", "u_int_all"),
+                         map = list(omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                    log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                    log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                    link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                         inner.control = list(maxit = 50),
+                         DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.int.psi <- nlminb(obj.int.psi$par, obj.int.psi$fn, obj.int.psi$gr)
+    ## Getting the sdreport.
+    sdrep.int.psi <- sdreport(obj.int.psi)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.int.psi <- plogis(obj.int.psi$report()$d_full_logit)
+    ## Saving the full model with the temperature-interaction field.
+    save(fit.int.psi, sdrep.int.psi, obj.int.psi, d.full.int.psi, file = "fit-int-sep.RData")
+}
+
 ## Making TMB object for spatiotemporal model with a
 ## spatial-temperature interaction, similar to above, but by using a
 ## sinosoidal function of time-of-year instead of temperature for both
@@ -335,111 +366,4 @@ if (do.int.p){
     d.full.int.p <- plogis(obj.int.p$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p, file = "fit-int-p.RData")
-}
-
-if (do.summary){
-    ## Loading in models, if they've been fitted in a previous R session.
-    load("fit-fixed.RData")
-    load("fit-fixed-p.RData")
-    load("fit-st.RData")
-    load("fit-st-p.RData")
-    load("fit-int.RData")
-    load("fit-int-p.RData")
-    
-    ## Comparing models by AIC.
-    2*fit.fixed$objective + 2*length(fit.fixed$par) ## Fixed-effects model.
-    2*fit.fixed.p$objective + 2*length(fit.fixed.p$par) ## ... with periodic regression.
-    2*fit.st$objective + 2*length(fit.st$par) ## Spatiotemporal model.
-    2*fit.st.p$objective + 2*length(fit.st.p$par) ## ... with periodic regression.
-    2*fit.int$objective + 2*length(fit.int$par) ## Spatiotemporal model with space-temperature interaction.
-    2*fit.int.p$objective + 2*length(fit.int.p$par) ## ... with periodic regression and with a space-time interaction via a sinusoidal function.
-
-    ## Choose a species.
-    s <- 1
-
-    ## Select a model.
-    obj <- obj.int
-    sdrep <- sdrep.int
-    d.full <- d.full.int[s, , ]
-    ## Collecting random and reported summaries.
-    rand.summary <- summary(sdrep, type = "random")
-    rep.summary <- summary(sdrep, type = "report")
-    
-    ## Plotting the spatiotemporal esimates.
-    proj <- inla.mesh.projector(mesh)
-    ## Choose month to plot (1 = Aug 2000, 2 = Sep 2000, etc).
-    i <- 1
-    field.proj <- inla.mesh.project(proj, d.full[, i])
-    
-    ## Set colour scheme with col argument. Set range of z-axis with zmax;
-    ## you'll probably need to change this for plotting estimates for
-    ## individual species.
-    zmax <- quantile(d.full, 0.99)
-    ## Choosing a colour scheme for the plots.
-    cols <- brewer.pal(9, "Blues")
-    field.proj[field.proj > zmax] <- zmax
-    ## Making a plot.
-    image.plot(list(x = proj$x, y = proj$y, z = field.proj), col = cols,
-               zlim = c(0, zmax), main = monthyear.id[i])
-    
-    ## This will create a plot of estimated probabilities for every
-    ## month. It's set up to dump them in /tmp on a Linux system.
-    jpeg("/tmp/dplot-int%03d.jpg")
-    zmax <- quantile(d.full, 0.99)
-    cols <- brewer.pal(9, "Blues")
-    for (i in 1:n.months){
-        field.proj <- inla.mesh.project(proj, d.full[, i])
-        field.proj[field.proj > zmax] <- zmax
-        image.plot(list(x = proj$x, y = proj$y, z = field.proj), col = cols,
-                   zlim = c(0, zmax), main = monthyear.id[i])
-        points(obs.xc, obs.yc, pch = ".")
-        cat(i, "of", n.months, "\n")
-    }
-    dev.off()
-    
-    ## This is the plot of how sighting probabilities across space are
-    ## affected by changing tempartures (for model int) or
-    ## time-of-year (model int.p). Red locations have increased
-    ## sighting probabilities as temperatures increase, blue areas
-    ## have increased sighting probabilities as temperature decreases
-    ## (for model int).
-
-    ## Collecting summaries.
-    rand.summary.int <- summary(sdrep.int, type = "random")
-    rep.summary.int <- summary(sdrep.int, type = "report")
-    rand.summary.int.p <- summary(sdrep.int.p, type = "random")
-    rep.summary.int.p <- summary(sdrep.int.p, type = "report")
-
-    ## Choose a species.
-    s <- 1
-    ## Getting taus.
-    tau.u.int <- exp(rep.summary.int[rownames(rep.summary.int) == "log_tau_u_int", 1])[s]
-    tau.u.int.p <- exp(rep.summary.int.p[rownames(rep.summary.int.p) == "log_tau_u_int", 1])[s]
-    ## Side-by-side plots for models int and int.p.
-    par(mfrow = c(2, 2))
-    u.int.est <- matrix(rand.summary.int[rownames(rand.summary.int) == "u_int_all", 1],
-                        nrow = 5)[s, ]/tau.u.int
-    u.int.est.p <- matrix(rand.summary.int.p[rownames(rand.summary.int.p) == "u_int_all", 1],
-                          nrow = 5)[s, ]/tau.u.int.p
-    proj <- inla.mesh.projector(mesh)
-    field.proj.int <- inla.mesh.project(proj, u.int.est)
-    field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
-    cols <- rev(brewer.pal(11, "RdBu"))
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int)), col = cols)
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int.p)), col = cols)
-    #points(obs.xc, obs.yc, pch = ".")
-    ## Plotting average temperature for each month.
-    average.month.temp <- numeric(12)
-    for (i in 1:12){
-        average.month.temp[i] <- mean(month.temp[jmonth == i])
-    }
-    plot(average.month.temp, type = "l")
-    ## Plotting related sinusoidal function.
-    gamma <- rep.summary.int.p[rownames(rep.summary.int.p) == "gamma", 1][s]
-    xx <- seq(0, 2*pi, length.out = 1000)
-    yy <- cos(xx - gamma)
-    plot(xx, yy, type = "l")
-
-    
-    save.image("fit-everything.RData")
 }
