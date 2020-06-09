@@ -126,7 +126,7 @@ Type objective_function<Type>::operator() ()
     d_fixed_logit = mat*betas_s;
     for (int i = 0; i < n; i++){
       d2(i) = d_fixed_logit(i) + psi_t(month_id(i)) + omega_s(mesh_id(i)) + epsilon_st(mesh_id(i), month_id(i));
-      // Addint contribution from u_int.
+      // Adding contribution from u_int.
       if (fit_int == 1){
 	d2(i) += ssts_centred(i)*u_int(mesh_id(i))/tau_u_int(s);
       } else if (fit_int == 2){
