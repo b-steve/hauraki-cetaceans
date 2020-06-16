@@ -62,7 +62,7 @@ if (do.gif){
         field.proj[field.proj > zmax] <- zmax
         image.plot(list(x = proj$x, y = proj$y, z = field.proj), col = cols,
                    zlim = c(0, zmax), main = monthyear.id[i])
-        points(obs.xc, obs.yc, pch = ".")
+        plot(NZ, col = "grey", add = TRUE)
         cat(i, "of", n.months, "\n")
     }
 }
