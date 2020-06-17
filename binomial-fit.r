@@ -13,10 +13,14 @@ do.st.p <- FALSE
 do.int <- FALSE
 do.int.psi <- FALSE
 do.int.p <- FALSE
+do.cf <- FALSE
 do.summary <- FALSE
 
 ## Loading in the data.
 load("sighting.RData")
+## Filliing in NaNs (fix when we have full data).
+cosfilt.temp[1:6] <- cosfilt.temp[7]
+cosfilt.temp[222:227] <- cosfilt.temp[221]
 
 ## Month labels.
 months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -47,15 +51,20 @@ jmonth.rad <- month.jmonth.rad[month.id]
 
 ## Creating ssts from month.temp.
 ssts <- month.temp[month.id]
+ssts.cf <- cosfilt.temp[month.id]
 ## Centring ssts and month.temp for numerical stability. Exactly how
 ## they are centred doesn't affect results.
 ssts.centred <- ssts - mean(month.temp)
+ssts.cf.centred <- ssts.cf - mean(cosfilt.temp)
 month.temp.centred <- month.temp - mean(month.temp)
+cosfilt.temp.centred <- cosfilt.temp - mean(cosfilt.temp)
 ## IMPORTANT: ssts.centred[i] must match
 ## month.temp.centred[month.id[i]] for all i. For example:
 ssts.centred[150000]; month.temp.centred[month.id[150000]]
+ssts.cf.centred[150000]; cosfilt.temp.centred[month.id[150000]]
 ## Same for ssts and month.temp:
 ssts[200000]; month.temp[month.id[200000]]
+ssts.cf[200000]; cosfilt.temp[month.id[200000]]
 ## Total number of months.
 n.months <- max(month.id)
 
@@ -92,6 +101,8 @@ n.trials <- new.df3$total.trips
 mat.pred <- cbind(1, month.temp)
 ## This one is set up for periodic regression.
 mat.pred.p <- cbind(1, sin(month.jmonth.rad), cos(month.jmonth.rad))
+## This one is set up for the cos-filtered temperature.
+mat.pred.cf <- cbind(1, month.temp, cosfilt.temp)
 
 ## Setting up the full design matrix (one row for each observation
 ## here). Whatever goes in here affects how many animals are estimated
@@ -99,6 +110,8 @@ mat.pred.p <- cbind(1, sin(month.jmonth.rad), cos(month.jmonth.rad))
 mat <- mat.pred[month.id, ]
 ## ... And for periodic regression.
 mat.p <- mat.pred.p[month.id, ]
+## ... And for cos-filtered temperature.
+mat.cf <- mat.pred.cf[month.id, ]
 ## Cell visitation probabilities.
 v <- new.df3$av.vesselprob
 ## Putting it all in a list.
@@ -109,9 +122,10 @@ data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              v = v, month_id = month.id - 1, mesh_id = mesh$idx$loc - 1,
              n_months = n.months, n_meshnodes = n.meshnodes,
              month_temp_centred = month.temp.centred,
+             cosfilt_temp_centred = cosfilt.temp.centred,
              mat_pred = mat.pred,
              spde = spde$param.inla[c("M0","M1","M2")],
-             fit_psi = 0, fit_omega = 0, fit_epsilon = 0, fit_int = 0)
+             fit_psi = 0, fit_omega = 0, fit_epsilon = 0, fit_int = 0, fit_cf = 0)
 ## Parameters for TMB.
 parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
                    link_phi_psi = numeric(n.species),
@@ -123,11 +137,14 @@ parameters <- list(betas = matrix(0, nrow = n.species, ncol = ncol(mat)),
                    log_kappa_epsilon = numeric(n.species),
                    log_kappa_u_int = numeric(n.species),
                    log_tau_u_int = numeric(n.species),
+                   log_kappa_u_cf = numeric(n.species),
+                   log_tau_u_cf = numeric(n.species),
                    link_gamma = numeric(n.species),
                    psi_t_all = matrix(0, nrow = n.species, ncol = n.months),
                    omega_s_all = matrix(0, nrow = n.species, ncol = n.meshnodes),
                    epsilon_st_all = array(0, dim = c(n.species, n.meshnodes, n.months)),
-                   u_int_all = matrix(0, nrow = n.species, ncol = n.meshnodes))
+                   u_int_all = matrix(0, nrow = n.species, ncol = n.meshnodes),
+                   u_cf_all = matrix(0, nrow = n.species, ncol = n.meshnodes))
 ## Data for periodic regression.
 data.p <- data
 data.p$n_betas <- ncol(mat.p)
@@ -136,6 +153,14 @@ data.p$mat_pred <- mat.pred.p
 ## Parameters for periodic regression.
 parameters.p <- parameters
 parameters.p$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.p))
+## Data for models with cosfiltered temperatures.
+data.cf <- data
+data.cf$n_betas <- ncol(mat.cf)
+data.cf$mat <- mat.cf
+data.cf$mat_pred <- mat.pred.cf
+## Parameters for cosfiltered temperature model.
+parameters.cf <- parameters
+parameters.cf$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.cf))
 
 ## Loading test fits.
 load("test.RData")
@@ -148,7 +173,8 @@ if (do.fixed){
                            map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
                                       omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
                                       epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
-                                      u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                      u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                      u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                       link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
                                       log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
                                       log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
@@ -158,6 +184,8 @@ if (do.fixed){
                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                      log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                      log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                            DLL = "binomial_fit")
     ## Fitting the model.
@@ -180,7 +208,8 @@ if (do.fixed.p){
                              map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
                                         omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
                                         epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
-                                        u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                        u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                        u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                         link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
                                         log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
                                         log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
@@ -190,6 +219,8 @@ if (do.fixed.p){
                                         log_kappa_epsilon = factor(rep(NA, length(parameters.p$log_kappa_epsilon))),
                                         log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
                                         log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
+                                        log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                        log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
                                         link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                              DLL = "binomial_fit")
     ## Fitting the model.
@@ -203,27 +234,30 @@ if (do.fixed.p){
 }
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
-## spatial field that varies over time, accounting for spatial and
+## spatial fieljd that varies over time, accounting for spatial and
 ## temporal correlations in sightings. This model will take somewhere
 ## between 30 mins and 2 hours to fit, at a guess.
 parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
 data$fit_epsilon <- 1
 if (do.st){
-    obj.st <- obj.int <- MakeADFun(data = data,
-                                   parameters = parameters,
-                                   random = "epsilon_st_all",
-                                   map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
-                                              omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
-                                              u_int_all = factor(rep(NA, length(parameters$u_int))),
-                                              link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
-                                              log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
-                                              log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
-                                              log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
-                                              log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
-                                              log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
-                                              link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
-                                   inner.control = list(maxit = 50),
-                                   DLL = "binomial_fit")
+    obj.st <- MakeADFun(data = data,
+                        parameters = parameters,
+                        random = "epsilon_st_all",
+                        map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                   omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                   u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                   u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                   link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                   log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                   log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                   log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                   log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                   log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                   log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                   log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                   link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                        inner.control = list(maxit = 50),
+                        DLL = "binomial_fit")
     ## Fitting the model.
     fit.st <- nlminb(obj.st$par, obj.st$fn, obj.st$gr)
     ## Getting sdreport.
@@ -246,13 +280,16 @@ if (do.st.p){
                           random = "epsilon_st_all",
                           map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
                                      omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
-                                     u_int_all = factor(rep(NA, length(parameters$u_int))),
+                                     u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                     u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                      link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
                                      log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
                                      log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
                                      log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
                                      log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
                                      log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
+                                     log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                     log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
                                      link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                           inner.control = list(maxit = 50),
                           DLL = "binomial_fit")
@@ -287,10 +324,13 @@ if (do.int){
                          random = c("epsilon_st_all", "u_int_all"),
                          map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
                                     omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                    u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                     link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
                                     log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
                                     log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
                                     log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                    log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                    log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
                                     link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                          inner.control = list(maxit = 50),
                          DLL = "binomial_fit")
@@ -320,8 +360,11 @@ if (do.int.psi){
                          parameters = parameters,
                          random = c("psi_t_all", "epsilon_st_all", "u_int_all"),
                          map = list(omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                    u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                     log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
                                     log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                    log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                    log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
                                     link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
                          inner.control = list(maxit = 50),
                          DLL = "binomial_fit")
@@ -348,16 +391,19 @@ data.p$fit_epsilon <- 1
 data.p$fit_int <- 2
 if (do.int.p){
     obj.int.p <- MakeADFun(data = data.p,
-                         parameters = parameters.p,
-                         random = c("epsilon_st_all", "u_int_all"),
-                         map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
-                                    omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
-                                    link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
-                                    log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
-                                    log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
-                                    log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega)))),
-                         inner.control = list(maxit = 50),
-                         DLL = "binomial_fit")
+                           parameters = parameters.p,
+                           random = c("epsilon_st_all", "u_int_all"),
+                           map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                      omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                      u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                      link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                      log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                      log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                      log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                      log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                      log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf)))),
+                           inner.control = list(maxit = 50),
+                           DLL = "binomial_fit")
     ## Fitting the model.
     fit.int.p <- nlminb(obj.int.p$par, obj.int.p$fn, obj.int.p$gr)
     ## Getting the sdreport.
@@ -366,4 +412,42 @@ if (do.int.p){
     d.full.int.p <- plogis(obj.int.p$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p, file = "fit-int-p.RData")
+}
+
+## Making TMB object for spatiotemporal model with two types of
+## spatial-temperature interactions. This model builds on fit.int by
+## adding an additional spatial field that estimates animal preference
+## for particular locations depending on gradual changes
+## temperature. This allows us to see how distributions are changing
+## due to long-term temperature variation.
+parameters.cf$betas[, 1:2] <- matrix(fit.int$par[names(fit.int$par) == "betas"], nrow = n.species, ncol = ncol(mat))
+parameters.cf$link_phi_epsilon <- fit.int$par[names(fit.int$par) == "link_phi_epsilon"]
+parameters.cf$log_sigma_epsilon <- fit.int$par[names(fit.int$par) == "log_sigma_epsilon"]
+parameters.cf$log_kappa_epsilon <- fit.int$par[names(fit.int$par) == "log_kappa_epsilon"]
+parameters.cf$log_kappa_u_int <- fit.int$par[names(fit.int$par) == "log_kappa_u_int"]
+parameters.cf$log_tau_u_int <- fit.int$par[names(fit.int$par) == "log_tau_u_int"]
+data.cf$fit_epsilon <- 1
+data.cf$fit_int <- 1
+data.cf$fit_cf <- 1
+if (do.cf){
+    obj.cf <- MakeADFun(data = data.cf,
+                        parameters <- parameters.cf,
+                        random = c("epsilon_st_all", "u_int_all", "u_cf_all"),
+                        map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                   omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                   link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                   log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                   log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                   log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                   link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                        inner.control = list(maxit = 50),
+                        DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.cf <- nlminb(obj.cf$par, obj.cf$fn, obj.cf$gr)
+    ## Getting the sdreport.
+    sdrep.cf <- sdreport(obj.cf)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.cf <- plogis(obj.cf$report()$d_full_logit)
+    ## Saving the full model with the temperature-interaction field.
+    save(fit.cf, sdrep.cf, obj.cf, d.full.cf, file = "fit-cf.RData")
 }

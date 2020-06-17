@@ -39,6 +39,8 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(n_meshnodes);
   // Month temperature.
   DATA_VECTOR(month_temp_centred);
+  // Cosfiltered month temperature.
+  DATA_VECTOR(cosfilt_temp_centred);
   // Month-based design matrix.
   DATA_MATRIX(mat_pred);
   // Something something SPDE (needs demystifying).
@@ -48,6 +50,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(fit_omega);
   DATA_INTEGER(fit_epsilon);
   DATA_INTEGER(fit_int);
+  DATA_INTEGER(fit_cf);
   // Vector of coefficients.
   PARAMETER_MATRIX(betas);
   // Parameters for the AR(1) psi process.
@@ -64,6 +67,9 @@ Type objective_function<Type>::operator() ()
   // Parameters for the SST-interaction spatial field.
   PARAMETER_VECTOR(log_kappa_u_int);
   PARAMETER_VECTOR(log_tau_u_int);
+  // Parameters for the cosfilt-interaction spatial field.
+  PARAMETER_VECTOR(log_kappa_u_cf);
+  PARAMETER_VECTOR(log_tau_u_cf);
   // Horizontal shift for seasonal interaction term.
   PARAMETER_VECTOR(link_gamma);
   // Vector of temporal process random variables.
@@ -74,6 +80,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER_ARRAY(epsilon_st_all);
   // Vector of SST-interaction spatial field.
   PARAMETER_MATRIX(u_int_all);
+  // Vector of cosfilt-interaction spatial field.
+  PARAMETER_MATRIX(u_cf_all);
   // Transforming parameters.
   vector<Type> phi_psi = 2*exp(link_phi_psi)/(1 + exp(link_phi_psi)) - 1;
   vector<Type> sigma_psi = exp(log_sigma_psi);
@@ -84,6 +92,8 @@ Type objective_function<Type>::operator() ()
   vector<Type> kappa_epsilon = exp(log_kappa_epsilon);
   vector<Type> kappa_u_int = exp(log_kappa_u_int);
   vector<Type> tau_u_int = exp(log_tau_u_int);
+  vector<Type> kappa_u_cf = exp(log_kappa_u_cf);
+  vector<Type> tau_u_cf = exp(log_tau_u_cf);
   vector<Type> gamma = 3.141593*exp(link_gamma)/(1 + exp(link_gamma));
   ADREPORT(phi_psi);
   ADREPORT(sigma_psi);
@@ -94,6 +104,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(kappa_epsilon);
   ADREPORT(kappa_u_int);
   ADREPORT(tau_u_int);
+  ADREPORT(kappa_u_cf);
+  ADREPORT(tau_u_cf);
   ADREPORT(gamma);
   vector<Type> f_all(n_species);
   array<Type> d_full_logit(n_species,n_meshnodes,n_months);
@@ -108,9 +120,11 @@ Type objective_function<Type>::operator() ()
     vector<Type> omega_s(n_meshnodes);
     array<Type> epsilon_st(n_meshnodes, n_months);
     vector<Type> u_int(n_meshnodes);
+    vector<Type> u_cf(n_meshnodes);
     for (int i = 0; i < n_meshnodes; i++){
       omega_s(i) = omega_s_all(s, i);
       u_int(i) = u_int_all(s, i);
+      u_cf(i) = u_cf_all(s, i);
       for (int j = 0; j < n_months; j++){
 	if (i == 0){
 	  psi_t(j) = psi_t_all(s, j);
@@ -132,6 +146,7 @@ Type objective_function<Type>::operator() ()
       } else if (fit_int == 2){
 	d2(i) += cos(jmonth_rad(i) - gamma(s))*u_int(mesh_id(i))/tau_u_int(s);
       }
+      // Adding contribution from u_cf.
     }
     d_fixed_logit_pred = mat_pred*betas_s;
     for (int i = 0; i < n_meshnodes; i++){
@@ -142,6 +157,10 @@ Type objective_function<Type>::operator() ()
 	  d_full_logit(s,i,j) += month_temp_centred(j)*u_int(i)/tau_u_int(s);
 	} else if (fit_int == 2){
 	  d_full_logit(s,i,j) += cos(month_jmonth_rad(j) - gamma(s))*u_int(i)/tau_u_int(s);
+	}
+	// Adding contribution from u_cf.
+	if (fit_cf == 1){
+	  d_full_logit(s,i,j) += cosfilt_temp_centred(j)*u_cf(i)/tau_u_cf(s);
 	}
       }
     }
@@ -173,6 +192,11 @@ Type objective_function<Type>::operator() ()
     if (fit_int > 0){
       SparseMatrix<Type> Q_int = Q_spde(spde,kappa_u_int(s));
       f_all(s) += GMRF(Q_int)(u_int);
+    }
+    // Component due to cosfilt-interaction spatial field.
+    if (fit_cf == 1){
+      SparseMatrix<Type> Q_cf = Q_spde(spde,kappa_u_cf(s));
+      f_all(s) += GMRF(Q_cf)(u_cf);
     }
   }
   REPORT(f_all);
