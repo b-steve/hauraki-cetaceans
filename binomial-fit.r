@@ -6,15 +6,14 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- FALSE
+do.fixed <- TRUE
 do.fixed.p <- FALSE
-do.st <- FALSE
+do.st <- TRUE
 do.st.p <- FALSE
-do.int <- FALSE
+do.int <- TRUE
 do.int.psi <- FALSE
 do.int.p <- FALSE
-do.cf <- FALSE
-do.summary <- FALSE
+do.cf <- TRUE
 
 ## Loading in the data.
 load("sighting.RData")
@@ -117,7 +116,7 @@ v <- new.df3$av.vesselprob
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              n_betas = ncol(mat), mat = mat,
-             ssts = ssts, ssts_centred = ssts.centred,
+             ssts = ssts, ssts_centred = ssts.centred, ssts_cf_centred = ssts.cf.centred,
              jmonth_rad = jmonth.rad, month_jmonth_rad = month.jmonth.rad,
              v = v, month_id = month.id - 1, mesh_id = mesh$idx$loc - 1,
              n_months = n.months, n_meshnodes = n.meshnodes,
@@ -433,13 +432,13 @@ if (do.cf){
     obj.cf <- MakeADFun(data = data.cf,
                         parameters <- parameters.cf,
                         random = c("epsilon_st_all", "u_int_all", "u_cf_all"),
-                        map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
-                                   omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
-                                   link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
-                                   log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
-                                   log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
-                                   log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
-                                   link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                        map = list(psi_t_all = factor(rep(NA, length(parameters.cf$psi_t_all))),
+                                   omega_s_all = factor(rep(NA, length(parameters.cf$omega_s_all))),
+                                   link_phi_psi = factor(rep(NA, length(parameters.cf$link_phi_psi))),
+                                   log_sigma_psi = factor(rep(NA, length(parameters.cf$log_sigma_psi))),
+                                   log_kappa_omega = factor(rep(NA, length(parameters.cf$log_kappa_omega))),
+                                   log_sigma_omega = factor(rep(NA, length(parameters.cf$log_sigma_omega))),
+                                   link_gamma = factor(rep(NA, length(parameters.cf$link_gamma)))),
                         inner.control = list(maxit = 50),
                         DLL = "binomial_fit")
     ## Fitting the model.

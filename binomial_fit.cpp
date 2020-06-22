@@ -23,6 +23,7 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(ssts);
   // Centred SSTs.
   DATA_VECTOR(ssts_centred);
+  // Centred cosfiltered SSTs.
   // Julian month in radians for each observation.
   DATA_VECTOR(jmonth_rad);
   // Julian month in radians for each month.
@@ -147,6 +148,9 @@ Type objective_function<Type>::operator() ()
 	d2(i) += cos(jmonth_rad(i) - gamma(s))*u_int(mesh_id(i))/tau_u_int(s);
       }
       // Adding contribution from u_cf.
+      if (fit_cf == 1){
+	d2(i) += ssts_cf_centred(i)*u_cf(mesh_id(i))/tau_u_cf(s);
+      }
     }
     d_fixed_logit_pred = mat_pred*betas_s;
     for (int i = 0; i < n_meshnodes; i++){
