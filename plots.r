@@ -4,19 +4,26 @@ library(RColorBrewer)
 library(fields)
 library(rgdal)
 library(raster)
-load("all-output.RData")
+new <- TRUE
+if (new){
+    load("all-output-new.RData")
+} else {
+    load("all-output.RData")
+}
+load("sighting.RData")
 ## Comparing models by AIC.
 sapply(fit, function(x) 2*x$objective + 2*length(x$par))
 
 ## Choose a model. Best to keep this at 5, because it's the best model.
 m <- 5
+
 ## Choose a species:
 ## 1 = "byrde",
 ## 2 = "cdolp",
 ## 3 = "bdolp",
 ## 4 = "orca",
 ## 5 = "whale"
-s <- 2
+s <- 3
 ## Choose month to plot (1 = Aug 2000, 2 = Sep 2000, etc).
 i <- 100
 ## Plotting the spatiotemporal esimates.
@@ -52,21 +59,50 @@ NZ <- crop(NZ, bbox(s.bbox))
 ## which can be turned into a .gif. If you uncomment jpeg() and
 ## dev.off(), it's set up to dump them in /tmp on a Linux
 ## system. (Feel free to ignore; I can make the gifs easily.)
-                                        #jpeg("/tmp/dplot-int%03d.jpg")
-do.gif <- FALSE
+do.gif <- TRUE
 if (do.gif){
     zmax <- quantile(d.full[[m]][s, , ], 0.99)
+    if (s == 3){
+        zmax <- 0.05
+    }
     cols <- brewer.pal(9, "Blues")
     for (i in 1:n.months){
+        jpeg(paste0("/home/bste085/mega/talks/ISEC2020/keepfigure/bdolp-animation/dplot-int", i, ".jpg"))
         field.proj <- inla.mesh.project(proj, d.full[[m]][s, , i])
         field.proj[field.proj > zmax] <- zmax
         image.plot(list(x = proj$x, y = proj$y, z = field.proj), col = cols,
                    zlim = c(0, zmax), main = monthyear.id[i])
         plot(NZ, col = "grey", add = TRUE)
         cat(i, "of", n.months, "\n")
+        dev.off()
     }
 }
 
+## Plotting survey effort.
+v <- new.df3$av.vesselprob
+u.x <- sort(unique(obs.xc))
+u.y <- sort(unique(obs.yc))
+z.v <- matrix(0, nrow = length(u.y), ncol = length(u.x))
+for (xi in 1:length(u.x)){
+    for (yi in 1:length(u.y)){
+        w.p <- which(obs.xc == u.x[xi] & obs.yc == u.y[yi])
+        if (length(w.p) == 0){
+            z.v[yi, xi] <- 0
+        } else {
+            z.v[yi, xi] <- v[w.p[1]]
+        }
+    }
+}
+z.max <- quantile(z.v, 0.95)
+z.v[z.v > z.max] <- z.max
+u.x.offset <- diff(u.x[1:2])
+u.y.offset <- diff(u.y[1:2])
+image.plot(list(x = c(u.x - u.x.offset, u.x[length(u.x)] + u.x.offset),
+                y = c(u.y - u.y.offset, u.y[length(u.y)] + u.y.offset),
+                z = t(z.v)),
+           col = cols, zlim = c(0, z.max), axes = FALSE)
+box()
+plot(NZ, col = "grey", add = TRUE)
 ## Plotting changes in occupancy at a specific location over time.
 
 ## First, choose a location by selecting a number from the following plot.

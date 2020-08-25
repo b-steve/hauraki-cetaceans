@@ -24,6 +24,7 @@ Type objective_function<Type>::operator() ()
   // Centred SSTs.
   DATA_VECTOR(ssts_centred);
   // Centred cosfiltered SSTs.
+  DATA_VECTOR(ssts_cf_centred);
   // Julian month in radians for each observation.
   DATA_VECTOR(jmonth_rad);
   // Julian month in radians for each month.

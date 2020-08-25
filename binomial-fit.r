@@ -6,14 +6,14 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- TRUE
+do.fixed <- FALSE
 do.fixed.p <- FALSE
-do.st <- TRUE
+do.st <- FALSE
 do.st.p <- FALSE
-do.int <- TRUE
+do.int <- FALSE
 do.int.psi <- FALSE
 do.int.p <- FALSE
-do.cf <- TRUE
+do.cf <- FALSE
 
 ## Loading in the data.
 load("sighting.RData")
@@ -163,6 +163,7 @@ parameters.cf$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.cf))
 
 ## Loading test fits.
 load("test.RData")
+load("fit-int.RData")
 if (do.fixed){
     ## Making TMB object for fixed-effects only model. This model has no
     ## spatiotemporal effects. It only allows sighting probabilities to
