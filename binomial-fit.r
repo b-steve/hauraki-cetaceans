@@ -1,3 +1,10 @@
+## ## Reading in command-line stuff for single-species models.
+## args <- commandArgs(trailingOnly = TRUE)
+## species <- as.numeric(args[1])
+## ## NA will default to all species.
+## print(species)
+
+
 ## Loading packages.
 library(INLA)
 library(TMB)
@@ -6,14 +13,14 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- FALSE
-do.fixed.p <- FALSE
-do.st <- FALSE
-do.st.p <- FALSE
-do.int <- FALSE
-do.int.psi <- FALSE
-do.int.p <- FALSE
-do.cf <- FALSE
+do.fixed <- TRUE
+do.fixed.p <- TRUE
+do.st <- TRUE
+do.st.p <- TRUE
+do.int <- TRUE
+do.int.psi <- TRUE
+do.int.p <- TRUE
+do.cf <- TRUE
 
 ## Loading in the data.
 load("sighting.RData")
@@ -89,8 +96,8 @@ dyn.load(dynlib("binomial_fit"))
 n <- nrow(new.df3)
 ## Number of trips with sightings for each row and each species.
 y <- as.matrix(new.df3[, c(8:11, 15)])
-## Number of species.
-n.species <- ncol(y)
+## Number of total species.
+n.all.species <- ncol(y)
 ## Number of trips for each row.
 n.trials <- new.df3$total.trips
 
@@ -113,6 +120,15 @@ mat.p <- mat.pred.p[month.id, ]
 mat.cf <- mat.pred.cf[month.id, ]
 ## Cell visitation probabilities.
 v <- new.df3$av.vesselprob
+## Make alternations for substes of species here.
+##species <- 1
+if (is.na(species)){
+    species <- 1:n.all.species
+}
+y <- y[, species, drop = FALSE]
+n.species <- ncol(y)
+
+
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
              n_betas = ncol(mat), mat = mat,
@@ -162,8 +178,8 @@ parameters.cf <- parameters
 parameters.cf$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.cf))
 
 ## Loading test fits.
-load("test.RData")
-load("fit-int.RData")
+#load("test.RData")
+#load("fit-int.RData")
 if (do.fixed){
     ## Making TMB object for fixed-effects only model. This model has no
     ## spatiotemporal effects. It only allows sighting probabilities to
@@ -195,7 +211,12 @@ if (do.fixed){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.fixed <- plogis(obj.fixed$report()$d_full_logit)
     ## Saving the fixed-effects model.
-    save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed, file = "fit-fixed.RData")
+    if (n.species == 1){
+        save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed,
+             file = paste0("fit-fixed-species-", species, ".RData"))
+    } else {
+        save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed, file = "fit-fixed.RData")
+    }
 }
 
 if (do.fixed.p){
@@ -230,7 +251,12 @@ if (do.fixed.p){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.fixed.p <- plogis(obj.fixed.p$report()$d_full_logit)
     ## Saving the fixed-effects model.
-    save(fit.fixed.p, sdrep.fixed.p, obj.fixed.p, d.full.fixed.p, file = "fit-fixed-p.RData")
+    if (n.species == 1){
+        save(fit.fixed.p, sdrep.fixed.p, obj.fixed.p, d.full.fixed.p,
+             file = paste0("fit-fixed-p-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.p, sdrep.fixed.p, obj.fixed.p, d.full.fixed.p, file = "fit-fixed-p.RData")
+    }
 }
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
@@ -265,7 +291,12 @@ if (do.st){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.st <- plogis(obj.st$report()$d_full_logit)
     ## Saving the spatiotemporal model.
-    save(fit.st, sdrep.st, obj.st, d.full.st, file = "fit-st.RData")
+    if (n.species == 1){
+        save(fit.st, sdrep.st, obj.st, d.full.st,
+             file = paste0("fit-st-species-", species, ".RData"))
+    } else {
+        save(fit.st, sdrep.st, obj.st, d.full.st, file = "fit-st.RData")
+    }
 }
 
 ## Making TMB object for spatiotemporal model, similar to above, but
@@ -300,7 +331,12 @@ if (do.st.p){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.st.p <- plogis(obj.st.p$report()$d_full_logit)
     ## Saving the spatiotemporal model.
-    save(fit.st.p, sdrep.st.p, obj.st.p, d.full.st.p, file = "fit-st-p.RData")
+    if (n.species == 1){
+        save(fit.st.p, sdrep.st.p, obj.st.p, d.full.st.p,
+             file = paste0("fit-st-p-species-", species, ".RData"))
+    } else {
+        save(fit.st.p, sdrep.st.p, obj.st.p, d.full.st.p, file = "fit-st-p.RData")
+    }
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -341,7 +377,12 @@ if (do.int){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.int <- plogis(obj.int$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
-    save(fit.int, sdrep.int, obj.int, d.full.int, file = "fit-int.RData")
+    if (n.species == 1){
+        save(fit.int, sdrep.int, obj.int, d.full.int,
+             file = paste0("fit-int-species-", species, ".RData"))
+    } else {
+        save(fit.int, sdrep.int, obj.int, d.full.int, file = "fit-int.RData")
+    }
 }
 
 ## Same as above, but with the spatiotemporal field separated into three parts.
@@ -375,7 +416,12 @@ if (do.int.psi){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.int.psi <- plogis(obj.int.psi$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
-    save(fit.int.psi, sdrep.int.psi, obj.int.psi, d.full.int.psi, file = "fit-int-sep.RData")
+    if (n.species == 1){
+        save(fit.int.psi, sdrep.int.psi, obj.int.psi, d.full.int.psi,
+             file = paste0("fit-int-sep-species-", species, ".RData"))
+    } else {
+        save(fit.int.psi, sdrep.int.psi, obj.int.psi, d.full.int.psi, file = "fit-int-sep.RData")
+    }
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -411,7 +457,12 @@ if (do.int.p){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.int.p <- plogis(obj.int.p$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
-    save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p, file = "fit-int-p.RData")
+    if (n.species == 1){
+        save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p,
+             file = paste0("fit-int-p-species-", species, ".RData"))
+    } else {
+        save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p, file = "fit-int-p.RData")
+    }
 }
 
 ## Making TMB object for spatiotemporal model with two types of
@@ -449,5 +500,10 @@ if (do.cf){
     ## Calculating estimates of sighting probabilities given visitation.
     d.full.cf <- plogis(obj.cf$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
-    save(fit.cf, sdrep.cf, obj.cf, d.full.cf, file = "fit-cf.RData")
+    if (n.species == 1){
+        save(fit.cf, sdrep.cf, obj.cf, d.full.cf, 
+             file = paste0("fit-cf-species-", species, ".RData"))
+    } else {
+        save(fit.cf, sdrep.cf, obj.cf, d.full.cf, file = "fit-cf.RData")
+    }
 }
