@@ -1,9 +1,9 @@
 ## ## Reading in command-line stuff for single-species models.
-## args <- commandArgs(trailingOnly = TRUE)
-## species <- as.numeric(args[1])
+args <- commandArgs(trailingOnly = TRUE)
+species <- as.numeric(args[1])
 ## ## NA will default to all species.
-## print(species)
-
+print(species)
+#species <- NA
 
 ## Loading packages.
 library(INLA)
@@ -82,7 +82,12 @@ yc.unique <- pixel_coord$Lat
 pixel.id <- new.df3$pixel_id
 obs.xc <- xc.unique[pixel.id]
 obs.yc <- yc.unique[pixel.id]
-mesh <- inla.mesh.2d(cbind(obs.xc, obs.yc), min.angle = 24, max.edge = c(0.05, 3), cutoff = 0.05)
+#mesh <- inla.mesh.2d(cbind(obs.xc, obs.yc), min.angle = 24, max.edge = c(0.05, 3), cutoff = 0.05)
+mesh <- inla.mesh.2d(cbind(obs.xc, obs.yc), min.angle = 25, max.edge = c(0.05, 2),
+                     cutoff = 0.03, offset = 0.1)
+#NZ <- readOGR(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
+#plot(mesh)
+#plot(NZ, col = "grey", add = TRUE)
 spde <- inla.spde2.matern(mesh, alpha = 2)
 n.meshnodes <- mesh$n
 
@@ -128,6 +133,7 @@ if (is.na(species)){
 y <- y[, species, drop = FALSE]
 n.species <- ncol(y)
 
+save.image(file = "prelim-data-smalltri.RData")
 
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
