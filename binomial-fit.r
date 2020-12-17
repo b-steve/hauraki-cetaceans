@@ -218,11 +218,12 @@ if (do.fixed){
     d.full.fixed <- plogis(obj.fixed$report()$d_full_logit)
     ## Saving the fixed-effects model.
     if (n.species == 1){
-        save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed,
+        save(fit.fixed, sdrep.fixed, d.full.fixed,
              file = paste0("fit-fixed-species-", species, ".RData"))
     } else {
-        save(fit.fixed, sdrep.fixed, obj.fixed, d.full.fixed, file = "fit-fixed.RData")
+        save(fit.fixed, sdrep.fixed, d.full.fixed, file = "fit-fixed.RData")
     }
+    rm(obj.fixed)
 }
 
 if (do.fixed.p){
@@ -258,11 +259,12 @@ if (do.fixed.p){
     d.full.fixed.p <- plogis(obj.fixed.p$report()$d_full_logit)
     ## Saving the fixed-effects model.
     if (n.species == 1){
-        save(fit.fixed.p, sdrep.fixed.p, obj.fixed.p, d.full.fixed.p,
+        save(fit.fixed.p, sdrep.fixed.p, d.full.fixed.p,
              file = paste0("fit-fixed-p-species-", species, ".RData"))
     } else {
-        save(fit.fixed.p, sdrep.fixed.p, obj.fixed.p, d.full.fixed.p, file = "fit-fixed-p.RData")
+        save(fit.fixed.p, sdrep.fixed.p, d.full.fixed.p, file = "fit-fixed-p.RData")
     }
+    rm(obj.fixed.p)
 }
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
@@ -298,11 +300,12 @@ if (do.st){
     d.full.st <- plogis(obj.st$report()$d_full_logit)
     ## Saving the spatiotemporal model.
     if (n.species == 1){
-        save(fit.st, sdrep.st, obj.st, d.full.st,
+        save(fit.st, sdrep.st, d.full.st,
              file = paste0("fit-st-species-", species, ".RData"))
     } else {
-        save(fit.st, sdrep.st, obj.st, d.full.st, file = "fit-st.RData")
+        save(fit.st, sdrep.st, d.full.st, file = "fit-st.RData")
     }
+    rm(obj.st)
 }
 
 ## Making TMB object for spatiotemporal model, similar to above, but
@@ -338,11 +341,12 @@ if (do.st.p){
     d.full.st.p <- plogis(obj.st.p$report()$d_full_logit)
     ## Saving the spatiotemporal model.
     if (n.species == 1){
-        save(fit.st.p, sdrep.st.p, obj.st.p, d.full.st.p,
+        save(fit.st.p, sdrep.st.p, d.full.st.p,
              file = paste0("fit-st-p-species-", species, ".RData"))
     } else {
-        save(fit.st.p, sdrep.st.p, obj.st.p, d.full.st.p, file = "fit-st-p.RData")
+        save(fit.st.p, sdrep.st.p, d.full.st.p, file = "fit-st-p.RData")
     }
+    rm(obj.st.p)
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -384,11 +388,12 @@ if (do.int){
     d.full.int <- plogis(obj.int$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     if (n.species == 1){
-        save(fit.int, sdrep.int, obj.int, d.full.int,
+        save(fit.int, sdrep.int, d.full.int,
              file = paste0("fit-int-species-", species, ".RData"))
     } else {
-        save(fit.int, sdrep.int, obj.int, d.full.int, file = "fit-int.RData")
+        save(fit.int, sdrep.int, d.full.int, file = "fit-int.RData")
     }
+    rm(obj.int)
 }
 
 ## Same as above, but with the spatiotemporal field separated into three parts.
@@ -423,11 +428,12 @@ if (do.int.psi){
     d.full.int.psi <- plogis(obj.int.psi$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     if (n.species == 1){
-        save(fit.int.psi, sdrep.int.psi, obj.int.psi, d.full.int.psi,
+        save(fit.int.psi, sdrep.int.psi, d.full.int.psi,
              file = paste0("fit-int-sep-species-", species, ".RData"))
     } else {
-        save(fit.int.psi, sdrep.int.psi, obj.int.psi, d.full.int.psi, file = "fit-int-sep.RData")
+        save(fit.int.psi, sdrep.int.psi, d.full.int.psi, file = "fit-int-sep.RData")
     }
+    rm(obj.int.psi)
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -464,11 +470,12 @@ if (do.int.p){
     d.full.int.p <- plogis(obj.int.p$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     if (n.species == 1){
-        save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p,
+        save(fit.int.p, sdrep.int.p, d.full.int.p,
              file = paste0("fit-int-p-species-", species, ".RData"))
     } else {
-        save(fit.int.p, sdrep.int.p, obj.int.p, d.full.int.p, file = "fit-int-p.RData")
+        save(fit.int.p, sdrep.int.p, d.full.int.p, file = "fit-int-p.RData")
     }
+    rm(obj.int.p)
 }
 
 ## Making TMB object for spatiotemporal model with two types of
@@ -507,9 +514,10 @@ if (do.cf){
     d.full.cf <- plogis(obj.cf$report()$d_full_logit)
     ## Saving the full model with the temperature-interaction field.
     if (n.species == 1){
-        save(fit.cf, sdrep.cf, obj.cf, d.full.cf, 
+        save(fit.cf, sdrep.cf, d.full.cf, 
              file = paste0("fit-cf-species-", species, ".RData"))
     } else {
-        save(fit.cf, sdrep.cf, obj.cf, d.full.cf, file = "fit-cf.RData")
+        save(fit.cf, sdrep.cf, d.full.cf, file = "fit-cf.RData")
     }
+    rm(obj.cf)
 }
