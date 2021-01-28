@@ -1,21 +1,52 @@
+smalltri <- FALSE
 ## Code to make plots follows.
 library(INLA)
 library(RColorBrewer)
 library(fields)
 library(rgdal)
 library(raster)
-new <- TRUE
-if (new){
-    load("all-output-new.RData")
-} else {
-    load("all-output.RData")
-}
+load(paste0("prelim-data", "-smalltri"[smalltri], ".RData"))
+load(paste0("all-species-output", "-smalltri"[smalltri], ".RData"))
 load("sighting.RData")
-## Comparing models by AIC.
-sapply(fit, function(x) 2*x$objective + 2*length(x$par))
+## Species information.
+n.species <- length(fit)
+species.names <- c("bryde", "cdolp", "bdolp", "orca", "whale")
+## Model information.
+n.models <- length(fit[[1]])
+model.names <- names(fit[[1]])
+## Calculating AICs and determining convergence.
+aic.tab <- matrix(0, nrow = n.species, ncol = n.models)
+aic.diff.tab <- matrix(0, nrow = n.species, ncol = n.models)
+converged.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
+fitted.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
+aic <- function(x) 2*x$objective + 2*length(x$par)
+for (i in 1:n.species){
+    for (j in 1:n.models){
+        if (is.null(fit[[i]][[j]])){
+            aic.tab[i, j] <- NA
+            converged.tab[i, j] <- NA
+        } else {
+            fitted.tab[i, j] <- TRUE
+            aic.tab[i, j] <- aic(fit[[i]][[j]])
+            converged.tab[i , j] <- !any(is.na(rep.summary[[i]][[j]]))
+        }
+    }
+    aic.diff.tab[i, ] <- aic.tab[i, ] - min(aic.tab[i, ], na.rm = TRUE)
+}
+aic.best.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
+rownames(aic.tab) <- rownames(converged.tab) <- rownames(aic.diff.tab) <- 
+    rownames(aic.best.tab) <- rownames(fitted.tab) <- species.names
+colnames(aic.tab) <- colnames(converged.tab) <- colnames(aic.diff.tab) <- 
+    colnames(aic.best.tab) <- colnames(fitted.tab) <- model.names
+aic.converged.tab <- aic.tab
+aic.converged.tab[!converged.tab] <- NA
+aic.best.converged.tab <- aic.best.tab
 
-## Choose a model. Best to keep this at 5, because it's the best model.
-m <- 5
+for (i in 1:n.species){
+    aic.best.tab[i, which(aic.tab[i, ] == min(aic.tab[i, ]))] <- TRUE
+    aic.best.converged.tab[i, which(aic.converged.tab[i, ] ==
+                                 min(aic.converged.tab[i, ], na.rm = TRUE))] <- TRUE
+}
 
 ## Choose a species:
 ## 1 = "byrde",
@@ -23,17 +54,26 @@ m <- 5
 ## 3 = "bdolp",
 ## 4 = "orca",
 ## 5 = "whale"
-s <- 3
+## Choose a species.
+s <- 1
+## Choose a model. Best to keep this at 5, because it's the best model.
+m <- 1
+## Grabbing the objects related to this model fit.
+fit.use <- fit[[s]][[m]]
+d.full.use <- d.full[[s]][[m]]
+rep.summary.use <- rep.summary[[s]][[m]]
+rand.summary.use <- rand.summary[[s]][[m]]
+
 ## Choose month to plot (1 = Aug 2000, 2 = Sep 2000, etc).
 i <- 100
 ## Plotting the spatiotemporal esimates.
 proj <- inla.mesh.projector(mesh)
-field.proj <- inla.mesh.project(proj, d.full[[m]][s, , i])
+field.proj <- inla.mesh.project(proj, d.full.use[1, , i])
 
 ## Set colour scheme with col argument. Set range of z-axis with zmax;
 ## you'll probably need to change this for plotting estimates for
 ## individual species.
-zmax <- quantile(d.full[[m]][s, , ], 0.99)
+zmax <- quantile(d.full.use[1, , ], 0.99)
 ## Choosing a colour scheme for the plots.
 cols <- brewer.pal(9, "Blues")
 field.proj[field.proj > zmax] <- zmax
@@ -61,22 +101,32 @@ NZ <- crop(NZ, bbox(s.bbox))
 ## system. (Feel free to ignore; I can make the gifs easily.)
 do.gif <- TRUE
 if (do.gif){
-    zmax <- quantile(d.full[[m]][s, , ], 0.99)
-    if (s == 3){
-        zmax <- 0.05
-    }
+    del.files <- list.files("/tmp/hauraki-gifs/")
+    file.remove(paste0("/tmp/hauraki-gifs/", del.files))
+    dir.create("/tmp/hauraki-gifs/")
+    zmax <- quantile(d.full.use[1, , ], 0.99)
+    #if (s == 3){
+    ##zmax <- 0.05
+    #}
     cols <- brewer.pal(9, "Blues")
     for (i in 1:n.months){
-        jpeg(paste0("/home/bste085/mega/talks/ISEC2020/keepfigure/bdolp-animation/dplot-int", i, ".jpg"))
-        field.proj <- inla.mesh.project(proj, d.full[[m]][s, , i])
+        gif.index <- as.character(i)
+        zeroes.needed <- nchar(as.character(n.months)) - nchar(gif.index)
+        gif.index <- paste0(paste(rep(0, zeroes.needed), collapse = ""), gif.index)
+        jpeg(paste0("/tmp/hauraki-gifs/plot", gif.index, ".jpg"))
+        field.proj <- inla.mesh.project(proj, d.full.use[1, , i])
         field.proj[field.proj > zmax] <- zmax
         image.plot(list(x = proj$x, y = proj$y, z = field.proj), col = cols,
                    zlim = c(0, zmax), main = monthyear.id[i])
+        which.counts <- which(y[month.id == i, s] > 0)
+        points(obs.xc[which.counts], obs.yc[which.counts], pch = 16, col = "red")
         plot(NZ, col = "grey", add = TRUE)
         cat(i, "of", n.months, "\n")
         dev.off()
     }
 }
+
+system("convert -delay 20 -loop 0 /tmp/hauraki-gifs/*.jpg ~/Desktop/heresagif.gif")
 
 ## Plotting survey effort.
 v <- new.df3$av.vesselprob
@@ -193,7 +243,8 @@ for (i in 1:n.plots){
 ## function.
 
 ## Choose a species. Same codes as above.
-s <- 2
+s <- 1
+
 ## Getting taus.
 tau.u.int <- exp(rep.summary[["int"]][rownames(rep.summary[["int"]]) == "log_tau_u_int", 1])[s]
 tau.u.int.p <- exp(rep.summary[["int.p"]][rownames(rep.summary[["int.p"]]) == "log_tau_u_int", 1])[s]

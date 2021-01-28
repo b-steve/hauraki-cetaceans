@@ -484,7 +484,8 @@ if (do.int.p){
 ## for particular locations depending on gradual changes
 ## temperature. This allows us to see how distributions are changing
 ## due to long-term temperature variation.
-parameters.cf$betas[, 1:2] <- matrix(fit.int$par[names(fit.int$par) == "betas"], nrow = n.species, ncol = ncol(mat))
+parameters.cf$betas[, 1:2] <- matrix(fit.int$par[names(fit.int$par) == "betas"],
+                                     nrow = n.species, ncol = ncol(mat))
 parameters.cf$link_phi_epsilon <- fit.int$par[names(fit.int$par) == "link_phi_epsilon"]
 parameters.cf$log_sigma_epsilon <- fit.int$par[names(fit.int$par) == "log_sigma_epsilon"]
 parameters.cf$log_kappa_epsilon <- fit.int$par[names(fit.int$par) == "log_kappa_epsilon"]
