@@ -101,6 +101,9 @@ dyn.load(dynlib("binomial_fit"))
 n <- nrow(new.df3)
 ## Number of trips with sightings for each row and each species.
 y <- as.matrix(new.df3[, c(8:11, 15)])
+## Adding a column with bryde and whale summed.
+y <- cbind(y, y[, 1] + y[, 5])
+colnames(y)[6] <- "n.brydes.all"
 ## Number of total species.
 n.all.species <- ncol(y)
 ## Number of trips for each row.
