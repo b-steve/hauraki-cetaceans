@@ -1,4 +1,4 @@
-smalltri <- FALSE
+smalltri <- TRUE
 ## Code to make plots follows.
 library(INLA)
 library(RColorBrewer)
@@ -35,7 +35,7 @@ for (i in 1:n.species){
 }
 aic.best.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
 rownames(aic.tab) <- rownames(converged.tab) <- rownames(aic.diff.tab) <- 
-    rownames(aic.best.tab) <- rownames(fitted.tab) <- species.names
+    rownames(aic.best.tab) <- rownames(fitted.tab) <- species.names[1:n.species]
 colnames(aic.tab) <- colnames(converged.tab) <- colnames(aic.diff.tab) <- 
     colnames(aic.best.tab) <- colnames(fitted.tab) <- model.names
 aic.converged.tab <- aic.tab
@@ -243,17 +243,15 @@ for (i in 1:n.plots){
 ## function.
 
 ## Choose a species. Same codes as above.
-s <- 1
+s <- 2
 
 ## Getting taus.
-tau.u.int <- exp(rep.summary[["int"]][rownames(rep.summary[["int"]]) == "log_tau_u_int", 1])[s]
-tau.u.int.p <- exp(rep.summary[["int.p"]][rownames(rep.summary[["int.p"]]) == "log_tau_u_int", 1])[s]
+tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
+tau.u.int.p <- exp(rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "log_tau_u_int", 1])
 ## Side-by-side plots for models int and int.p.
 par(mfrow = c(2, 2))
-u.int.est <- matrix(rand.summary[["int"]][rownames(rand.summary[["int"]]) == "u_int_all", 1],
-                    nrow = 5)[s, ]/tau.u.int
-u.int.est.p <- matrix(rand.summary[["int.p"]][rownames(rand.summary[["int.p"]]) == "u_int_all", 1],
-                      nrow = 5)[s, ]/tau.u.int.p
+u.int.est <- rand.summary[[s]][["int"]][rownames(rand.summary[[s]][["int"]]) == "u_int_all", 1]/tau.u.int
+u.int.est.p <- rand.summary[[s]][["int-p"]][rownames(rand.summary[[s]][["int-p"]]) == "u_int_all", 1]/tau.u.int.p
 proj <- inla.mesh.projector(mesh)
 field.proj.int <- inla.mesh.project(proj, u.int.est)
 field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
@@ -268,7 +266,26 @@ for (i in 1:12){
 }
 plot(average.month.temp, type = "l")
 ## Plotting related sinusoidal function.
-gamma <- rep.summary[["int.p"]][rownames(rep.summary[["int.p"]]) == "gamma", 1][s]
+gamma <- rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "gamma", 1]
 xx <- seq(0, 2*pi, length.out = 1000)
 yy <- cos(xx - gamma)
 plot(xx, yy, type = "l")
+
+## Same for cosfiltered temperature effect.
+tau.cf <- exp(rep.summary[[s]][["cf"]][rownames(rep.summary[[s]][["cf"]]) == "log_tau_u_cf", 1])
+u.cf.est <- rand.summary[[s]][["cf"]][rownames(rand.summary[[s]][["cf"]]) == "u_cf_all", 1]/tau.cf
+proj <- inla.mesh.projector(mesh)
+field.proj.cf <- inla.mesh.project(proj, u.cf.est)
+cols <- rev(brewer.pal(11, "RdBu"))
+image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.cf)), col = cols)
+plot(NZ, col = "grey", add = TRUE)
+
+## Getting taus.
+tau.u.int <- exp(rep.summary[[s]][["cf"]][rownames(rep.summary[[s]][["cf"]]) == "log_tau_u_int", 1])
+u.int.est <- rand.summary[[s]][["cf"]][rownames(rand.summary[[s]][["cf"]]) == "u_int_all", 1]/tau.u.int
+proj <- inla.mesh.projector(mesh)
+field.proj.int <- inla.mesh.project(proj, u.int.est)
+field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
+cols <- rev(brewer.pal(11, "RdBu"))
+image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int)), col = cols)
+plot(NZ, col = "grey", add = TRUE)
