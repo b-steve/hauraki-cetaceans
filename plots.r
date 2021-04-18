@@ -55,9 +55,9 @@ for (i in 1:n.species){
 ## 4 = "orca",
 ## 5 = "whale"
 ## Choose a species.
-s <- 1
+s <- 5
 ## Choose a model. Best to keep this at 5, because it's the best model.
-m <- 1
+m <- 6
 ## Grabbing the objects related to this model fit.
 fit.use <- fit[[s]][[m]]
 d.full.use <- d.full[[s]][[m]]
@@ -243,17 +243,15 @@ for (i in 1:n.plots){
 ## function.
 
 ## Choose a species. Same codes as above.
-s <- 1
+s <- 5
 
 ## Getting taus.
-tau.u.int <- exp(rep.summary[["int"]][rownames(rep.summary[["int"]]) == "log_tau_u_int", 1])[s]
-tau.u.int.p <- exp(rep.summary[["int.p"]][rownames(rep.summary[["int.p"]]) == "log_tau_u_int", 1])[s]
-## Side-by-side plots for models int and int.p.
+tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
+tau.u.int.p <- exp(rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "log_tau_u_int", 1])
+## Side-by-side plots for models int and int-p.
 par(mfrow = c(2, 2))
-u.int.est <- matrix(rand.summary[["int"]][rownames(rand.summary[["int"]]) == "u_int_all", 1],
-                    nrow = 5)[s, ]/tau.u.int
-u.int.est.p <- matrix(rand.summary[["int.p"]][rownames(rand.summary[["int.p"]]) == "u_int_all", 1],
-                      nrow = 5)[s, ]/tau.u.int.p
+u.int.est <- rand.summary[[s]][["int"]][rownames(rand.summary[[s]][["int"]]) == "u_int_all", 1]/tau.u.int
+u.int.est.p <- rand.summary[[s]][["int-p"]][rownames(rand.summary[[s]][["int-p"]]) == "u_int_all", 1]/tau.u.int.p
 proj <- inla.mesh.projector(mesh)
 field.proj.int <- inla.mesh.project(proj, u.int.est)
 field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
@@ -268,7 +266,7 @@ for (i in 1:12){
 }
 plot(average.month.temp, type = "l")
 ## Plotting related sinusoidal function.
-gamma <- rep.summary[["int.p"]][rownames(rep.summary[["int.p"]]) == "gamma", 1][s]
+gamma <- rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "gamma", 1][s]
 xx <- seq(0, 2*pi, length.out = 1000)
 yy <- cos(xx - gamma)
 plot(xx, yy, type = "l")
