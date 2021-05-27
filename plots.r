@@ -1,12 +1,11 @@
-smalltri <- FALSE
 ## Code to make plots follows.
 library(INLA)
 library(RColorBrewer)
 library(fields)
 library(rgdal)
 library(raster)
-load(paste0("prelim-data", "-smalltri"[smalltri], ".RData"))
-load(paste0("all-species-output", "-smalltri"[smalltri], ".RData"))
+load(paste0("prelim-data", ".RData"))
+load(paste0("all-species-output", ".RData"))
 load("sighting.RData")
 ## Species information.
 n.species <- length(fit)
@@ -55,8 +54,8 @@ for (i in 1:n.species){
 ## 4 = "orca",
 ## 5 = "whale"
 ## Choose a species.
-s <- 5
-## Choose a model. Best to keep this at 5, because it's the best model.
+s <- 1
+## Choose a model.
 m <- 6
 ## Grabbing the objects related to this model fit.
 fit.use <- fit[[s]][[m]]
@@ -129,7 +128,7 @@ if (do.gif){
 system("convert -delay 20 -loop 0 /tmp/hauraki-gifs/*.jpg ~/Desktop/heresagif.gif")
 
 ## Plotting survey effort.
-v <- new.df3$av.vesselprob
+v <- sighting.df$av.vesselprob
 u.x <- sort(unique(obs.xc))
 u.y <- sort(unique(obs.yc))
 z.v <- matrix(0, nrow = length(u.y), ncol = length(u.x))
@@ -153,6 +152,7 @@ image.plot(list(x = c(u.x - u.x.offset, u.x[length(u.x)] + u.x.offset),
            col = cols, zlim = c(0, z.max), axes = FALSE)
 box()
 plot(NZ, col = "grey", add = TRUE)
+
 ## Plotting changes in occupancy at a specific location over time.
 
 ## First, choose a location by selecting a number from the following plot.
@@ -185,7 +185,7 @@ all.ds <- array(0, dim = c(n.plots, n.months, 5))
 for (i in 1:n.plots){
     p <- ps[i]
     for (s in 1:5){
-        all.ds[i, , s] <- d.full[[m]][s, p, ]
+        all.ds[i, , s] <- d.full[[s]][[m]][, p, ]
     }
 }
 for (i in 1:n.plots){
@@ -243,7 +243,7 @@ for (i in 1:n.plots){
 ## function.
 
 ## Choose a species. Same codes as above.
-s <- 5
+s <- 1
 
 ## Getting taus.
 tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
@@ -266,7 +266,7 @@ for (i in 1:12){
 }
 plot(average.month.temp, type = "l")
 ## Plotting related sinusoidal function.
-gamma <- rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "gamma", 1][s]
+gamma <- rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "gamma", 1]
 xx <- seq(0, 2*pi, length.out = 1000)
 yy <- cos(xx - gamma)
 plot(xx, yy, type = "l")

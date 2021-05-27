@@ -23,7 +23,7 @@ do.int.p <- TRUE
 do.cf <- TRUE
 
 ## Loading in the data.
-load("sighting.RData")
+load("sighting-new.RData")
 ## Filliing in NaNs (fix when we have full data).
 cosfilt.temp[1:6] <- cosfilt.temp[7]
 cosfilt.temp[222:227] <- cosfilt.temp[221]
@@ -133,7 +133,7 @@ if (is.na(species)){
 y <- y[, species, drop = FALSE]
 n.species <- ncol(y)
 
-save.image(file = "prelim-data-smalltri.RData")
+#save.image(file = "prelim-data-smalltri.RData")
 
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
