@@ -1,19 +1,4 @@
-new <- TRUE
-if (new){
-    model.names <- c("cf", "fixed", "int", "st")
-} else {
-    model.names <- c("fixed", "fixed-p", "st", "st-p", "int", "int-psi", "int-p")
-}
-n.models <- length(model.names)
-
-model.ext <- chartr("-", ".", model.names)
-if (new){
-    model.names <- paste0(model.names, "-new")
-}
-
-
 library(TMB)
-smalltri <- TRUE
 ## Number of species.
 n.species <- 6
 ## Filename indicator for each of the models.
@@ -39,7 +24,7 @@ for (i in 1:n.species){
     for (j in 1:n.models){
         cat(i, j, "\n")
         current.obj <- ls()
-        filename <- paste("fits-newest/fit-", model.ext[j], "-species-", i, ".RData", sep = "")
+        filename <- paste("fits", "/fit-", model.ext[j], "-species-", i, ".RData", sep = "")
         if (file.exists(filename)){
             load(filename)
             fit[[i]][[j]] <- get(paste("fit.", model.names[j], sep = ""))
@@ -50,9 +35,9 @@ for (i in 1:n.species){
             d.full[[i]][[j]] <- get(paste("d.full.", model.names[j], sep = ""))
         }
         new.obj <- ls()
-        rm(list = new.obj[!new.obj %in% current.obj])
+        #rm(list = new.obj[!new.obj %in% current.obj])
     }
 }
 
-out.name <- paste0("all-species-output", "-smalltri"[smalltri], ".RData")
+out.name <- paste0("all-species-output", ".RData")
 save(fit, rep.summary, rand.summary, d.full, file = out.name)

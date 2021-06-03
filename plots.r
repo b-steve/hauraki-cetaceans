@@ -1,12 +1,11 @@
-smalltri <- TRUE
 ## Code to make plots follows.
 library(INLA)
 library(RColorBrewer)
 library(fields)
 library(rgdal)
 library(raster)
-load(paste0("prelim-data", "-smalltri"[smalltri], ".RData"))
-load(paste0("all-species-output", "-smalltri"[smalltri], ".RData"))
+load(paste0("prelim-data", ".RData"))
+load(paste0("all-species-output", ".RData"))
 load("sighting.RData")
 ## Species information.
 n.species <- length(fit)
@@ -57,7 +56,7 @@ for (i in 1:n.species){
 ## 6 = "brydeplus"
 ## Choose a species.
 s <- 6
-## Choose a model. Best to keep this at 5, because it's the best model.
+## Choose a model.
 m <- 6
 ## Grabbing the objects related to this model fit.
 fit.use <- fit[[s]][[m]]
@@ -130,7 +129,7 @@ if (do.gif){
 system("convert -delay 20 -loop 0 /tmp/hauraki-gifs/*.jpg ~/Desktop/heresagif.gif")
 
 ## Plotting survey effort.
-v <- new.df3$av.vesselprob
+v <- sighting.df$av.vesselprob
 u.x <- sort(unique(obs.xc))
 u.y <- sort(unique(obs.yc))
 z.v <- matrix(0, nrow = length(u.y), ncol = length(u.x))
@@ -154,6 +153,7 @@ image.plot(list(x = c(u.x - u.x.offset, u.x[length(u.x)] + u.x.offset),
            col = cols, zlim = c(0, z.max), axes = FALSE)
 box()
 plot(NZ, col = "grey", add = TRUE)
+
 ## Plotting changes in occupancy at a specific location over time.
 
 ## First, choose a location by selecting a number from the following plot.
@@ -187,6 +187,7 @@ all.ds <- array(0, dim = c(n.plots, n.months, 6))
 for (i in 1:n.plots){
     p <- ps[i]
     for (s in 1:6){
+        ## Note: probably need to set a species-specific model here.
         m <- which(aic.best.tab[s, ])
         all.ds[i, , s] <- d.full[[s]][[m]][1, p, ]
     }
@@ -251,7 +252,7 @@ s <- 6
 ## Getting taus.
 tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
 tau.u.int.p <- exp(rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "log_tau_u_int", 1])
-## Side-by-side plots for models int and int.p.
+## Side-by-side plots for models int and int-p.
 par(mfrow = c(2, 2))
 u.int.est <- rand.summary[[s]][["int"]][rownames(rand.summary[[s]][["int"]]) == "u_int_all", 1]/tau.u.int
 u.int.est.p <- rand.summary[[s]][["int-p"]][rownames(rand.summary[[s]][["int-p"]]) == "u_int_all", 1]/tau.u.int.p

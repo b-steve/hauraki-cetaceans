@@ -23,7 +23,7 @@ do.int.p <- TRUE
 do.cf <- TRUE
 
 ## Loading in the data.
-load("sighting.RData")
+load("sighting-new.RData")
 ## Filliing in NaNs (fix when we have full data).
 cosfilt.temp[1:6] <- cosfilt.temp[7]
 cosfilt.temp[222:227] <- cosfilt.temp[221]
@@ -33,13 +33,13 @@ months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"
 ## Year labels.
 years <- 2000:2019
 ## Creating month.id variable (1 = Aug 2000, 2 = Sep 2000, etc).
-month.id <- numeric(nrow(new.df3))
+month.id <- numeric(nrow(sighting.df))
 current.id <- 1
 monthyear.id <- NULL
 jmonth <- NULL
 for (i in years){
     for (j in months){
-        month.id[new.df3$year == i & new.df3$month == j] <- current.id
+        month.id[sighting.df$year == i & sighting.df$month == j] <- current.id
         monthyear.id <- c(monthyear.id, paste(j, i))
         jmonth <- c(jmonth, which(months == j))
         current.id <- current.id + 1
@@ -79,7 +79,7 @@ n.months <- max(month.id)
 load("pixelcoord.RData")
 xc.unique <- pixel_coord$Long
 yc.unique <- pixel_coord$Lat
-pixel.id <- new.df3$pixel_id
+pixel.id <- sighting.df$pixel_id
 obs.xc <- xc.unique[pixel.id]
 obs.yc <- yc.unique[pixel.id]
 #mesh <- inla.mesh.2d(cbind(obs.xc, obs.yc), min.angle = 24, max.edge = c(0.05, 3), cutoff = 0.05)
@@ -98,16 +98,16 @@ dyn.load(dynlib("binomial_fit"))
 ## Setting up data for TMB.
 
 ## Total number of rows.
-n <- nrow(new.df3)
+n <- nrow(sighting.df)
 ## Number of trips with sightings for each row and each species.
-y <- as.matrix(new.df3[, c(8:11, 15)])
+y <- as.matrix(sighting.df[, c(8:11, 15)])
 ## Adding a column with bryde and whale summed.
 y <- cbind(y, y[, 1] + y[, 5])
 colnames(y)[6] <- "n.brydes.all"
 ## Number of total species.
 n.all.species <- ncol(y)
 ## Number of trips for each row.
-n.trials <- new.df3$total.trips
+n.trials <- sighting.df$total.trips
 
 ## A design matrix for monthly sighting probability estimates. This
 ## needs one value per month, starting at August 2000 and ending June
@@ -127,7 +127,7 @@ mat.p <- mat.pred.p[month.id, ]
 ## ... And for cos-filtered temperature.
 mat.cf <- mat.pred.cf[month.id, ]
 ## Cell visitation probabilities.
-v <- new.df3$av.vesselprob
+v <- sighting.df$av.vesselprob
 ## Make alternations for substes of species here.
 ##species <- 1
 if (is.na(species)){
@@ -136,7 +136,7 @@ if (is.na(species)){
 y <- y[, species, drop = FALSE]
 n.species <- ncol(y)
 
-save.image(file = "prelim-data-smalltri.RData")
+#save.image(file = "prelim-data-smalltri.RData")
 
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
