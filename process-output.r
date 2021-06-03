@@ -11,10 +11,11 @@ if (new){
     model.names <- paste0(model.names, "-new")
 }
 
-smalltri <- TRUE
 
+library(TMB)
+smalltri <- TRUE
 ## Number of species.
-n.species <- 5
+n.species <- 6
 ## Filename indicator for each of the models.
 model.ext <- c("cf", "fixed-p", "fixed", "int-p", "int-sep", "int", "st-p", "st")
 ## R object indicator for each of the models.
@@ -38,7 +39,7 @@ for (i in 1:n.species){
     for (j in 1:n.models){
         cat(i, j, "\n")
         current.obj <- ls()
-        filename <- paste("fits", "-smalltri"[smalltri], "/fit-", model.ext[j], "-species-", i, ".RData", sep = "")
+        filename <- paste("fits-newest/fit-", model.ext[j], "-species-", i, ".RData", sep = "")
         if (file.exists(filename)){
             load(filename)
             fit[[i]][[j]] <- get(paste("fit.", model.names[j], sep = ""))

@@ -10,7 +10,7 @@ load(paste0("all-species-output", "-smalltri"[smalltri], ".RData"))
 load("sighting.RData")
 ## Species information.
 n.species <- length(fit)
-species.names <- c("bryde", "cdolp", "bdolp", "orca", "whale")
+species.names <- c("bryde", "cdolp", "bdolp", "orca", "whale", "brydeplus")
 ## Model information.
 n.models <- length(fit[[1]])
 model.names <- names(fit[[1]])
@@ -43,7 +43,7 @@ aic.converged.tab[!converged.tab] <- NA
 aic.best.converged.tab <- aic.best.tab
 
 for (i in 1:n.species){
-    aic.best.tab[i, which(aic.tab[i, ] == min(aic.tab[i, ]))] <- TRUE
+    aic.best.tab[i, which(aic.tab[i, ] == min(aic.tab[i, ], na.rm = TRUE))] <- TRUE
     aic.best.converged.tab[i, which(aic.converged.tab[i, ] ==
                                  min(aic.converged.tab[i, ], na.rm = TRUE))] <- TRUE
 }
@@ -54,10 +54,11 @@ for (i in 1:n.species){
 ## 3 = "bdolp",
 ## 4 = "orca",
 ## 5 = "whale"
+## 6 = "brydeplus"
 ## Choose a species.
-s <- 1
+s <- 6
 ## Choose a model. Best to keep this at 5, because it's the best model.
-m <- 1
+m <- 6
 ## Grabbing the objects related to this model fit.
 fit.use <- fit[[s]][[m]]
 d.full.use <- d.full[[s]][[m]]
@@ -156,17 +157,18 @@ plot(NZ, col = "grey", add = TRUE)
 ## Plotting changes in occupancy at a specific location over time.
 
 ## First, choose a location by selecting a number from the following plot.
-field.proj <- inla.mesh.project(proj, d.full[[m]][s, , i])
+field.proj <- inla.mesh.project(proj, d.full[[s]][[m]][1, , i])
 image.plot(list(x = proj$x, y = proj$y, z = 1000*field.proj), col = cols,
            zlim = c(0, zmax), main = monthyear.id[i], asp = 1)
-points(obs.xc, obs.yc, pch = ".", cex = 3)
-text(mesh$loc[, 1], mesh$loc[, 2], labels = as.character(1:230))
+#points(obs.xc, obs.yc, pch = ".", cex = 3)
+text(mesh$loc[, 1], mesh$loc[, 2], labels = 1:nrow(mesh$loc), cex = 0.75)
+plot(NZ, col = "grey", add = TRUE)
 ## To see the lat/long coordinates of each location, look in mesh$loc.
 
 ## Enter location IDs here.
-ps <- c(118, 124, 117, 126)
+ps <- c(310, 311, 292, 295)
 n.plots <- length(ps)
-cols <- brewer.pal(5, "Set1")
+cols <- brewer.pal(6, "Set1")
 ## Set to TRUE for same scale.
 same.scale <- FALSE
 ## Sorting out layout.
@@ -181,11 +183,12 @@ if (separate.maps){
 }
 layout(mat.layout, heights = rep(1, 4), widths = rep(1, 4))
 par(mar = c(0, 0, 0.25, 0.5), oma = c(3, 4, 0, 0.25), las = 1, xaxs = "i")
-all.ds <- array(0, dim = c(n.plots, n.months, 5))
+all.ds <- array(0, dim = c(n.plots, n.months, 6))
 for (i in 1:n.plots){
     p <- ps[i]
-    for (s in 1:5){
-        all.ds[i, , s] <- d.full[[m]][s, p, ]
+    for (s in 1:6){
+        m <- which(aic.best.tab[s, ])
+        all.ds[i, , s] <- d.full[[s]][[m]][1, p, ]
     }
 }
 for (i in 1:n.plots){
@@ -200,7 +203,7 @@ for (i in 1:n.plots){
     plot.window(xlim = c(1, n.months),
                 ylim = ylim)
     abline(v = 6 + (0:30)*12, col = "lightgrey")
-    for (s in 1:5){
+    for (s in 1:6){
         lines(1:n.months, all.ds[i, , s], col = cols[s])
     }
     box()
@@ -211,8 +214,8 @@ for (i in 1:n.plots){
     }
     axis(2)
     if (i == 1){
-        legend("topright", c("Bryde's whale", "Common dolphin", "Bottlenose dolphin", "Orca", "Whale"),
-               col = cols, lty = rep(1, 5), bg = "white")
+        legend("topright", c("Bryde's whale", "Common dolphin", "Bottlenose dolphin", "Orca", "Whale", "Bryde's +"),
+               col = cols, lty = rep(1, 6), bg = "white")
     }
     if (separate.maps){
         plot.new()
@@ -243,7 +246,7 @@ for (i in 1:n.plots){
 ## function.
 
 ## Choose a species. Same codes as above.
-s <- 2
+s <- 6
 
 ## Getting taus.
 tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
@@ -257,8 +260,10 @@ field.proj.int <- inla.mesh.project(proj, u.int.est)
 field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
 cols <- rev(brewer.pal(11, "RdBu"))
 image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int)), col = cols)
+plot(NZ, col = "grey", add = TRUE)
 image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int.p)), col = cols)
-                                        #points(obs.xc, obs.yc, pch = ".")
+plot(NZ, col = "grey", add = TRUE)
+##points(obs.xc, obs.yc, pch = ".")
 ## Plotting average temperature for each month.
 average.month.temp <- numeric(12)
 for (i in 1:12){
@@ -270,6 +275,8 @@ gamma <- rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "g
 xx <- seq(0, 2*pi, length.out = 1000)
 yy <- cos(xx - gamma)
 plot(xx, yy, type = "l")
+
+## Just plotting the 
 
 ## Same for cosfiltered temperature effect.
 tau.cf <- exp(rep.summary[[s]][["cf"]][rownames(rep.summary[[s]][["cf"]]) == "log_tau_u_cf", 1])
