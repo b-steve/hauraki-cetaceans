@@ -15,6 +15,7 @@ library(RColorBrewer)
 ## file.
 do.fixed <- TRUE
 do.fixed.p <- TRUE
+do.st.add <- TRUE
 do.st <- TRUE
 do.st.p <- TRUE
 do.int <- TRUE
@@ -23,7 +24,7 @@ do.int.p <- TRUE
 do.cf <- TRUE
 
 ## Loading in the data.
-load("sighting-new.RData")
+load("sighting.RData")
 ## Filliing in NaNs (fix when we have full data).
 cosfilt.temp[1:6] <- cosfilt.temp[7]
 cosfilt.temp[222:227] <- cosfilt.temp[221]
@@ -136,7 +137,7 @@ if (is.na(species)){
 y <- y[, species, drop = FALSE]
 n.species <- ncol(y)
 
-#save.image(file = "prelim-data-smalltri.RData")
+save.image(file = "prelim-data.RData")
 
 ## Putting it all in a list.
 data <- list(n = n, y = y, n_species = n.species, n_trials = n.trials,
@@ -185,6 +186,10 @@ data.cf$mat_pred <- mat.pred.cf
 ## Parameters for cosfiltered temperature model.
 parameters.cf <- parameters
 parameters.cf$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.cf))
+## Data for model with additive space and time effects.
+data.st.add <- data
+## Parameters for model with additive space and time effects.
+parameters.st.add <- parameters
 
 ## Loading test fits.
 #load("test.RData")
@@ -270,8 +275,45 @@ if (do.fixed.p){
     rm(obj.fixed.p)
 }
 
+## Making TMB model for an additive spatiotemporal model. This adds
+## separate wiggly spatial and temporal fields in an additive way, so
+## that the spatial distribution of animals is constant throughout
+## time, but overall abundance may vary.
+data.st.add$fit_psi <- 1
+data.st.add$fit_omega <- 1
+if (do.st.add){
+    obj.st.add <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
+                            random = c("psi_t_all", "omega_s_all"),
+                            map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                       u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.st.add <- nlminb(obj.st.add$par, obj.st.add$fn, obj.st.add$gr)
+    ## Getting sdreport.
+    sdrep.st.add <- sdreport(obj.st.add)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.st.add <- plogis(obj.st.add$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.st.add, sdrep.st.add, d.full.st.add,
+             file = paste0("fit-st-add-species-", species, ".RData"))
+    } else {
+        save(fit.st.add, sdrep.st.add, d.full.st.add, file = "fit-st-add.RData")
+    }
+    rm(obj.st.add)
+}
+
 ## Making TMB object for spatiotemporal model. This adds a wiggly
-## spatial fieljd that varies over time, accounting for spatial and
+## spatial field that varies over time, accounting for spatial and
 ## temporal correlations in sightings. This model will take somewhere
 ## between 30 mins and 2 hours to fit, at a guess.
 parameters$betas <- matrix(fit.fixed$par, nrow = n.species, ncol = ncol(mat))
@@ -399,7 +441,7 @@ if (do.int){
     rm(obj.int)
 }
 
-## Same as above, but with the spatiotemporal field separated into three parts.
+## Same as above, but with the spatiotemporal field separated into two parts.
 parameters$betas <- matrix(fit.int$par[names(fit.int$par) == "betas"], nrow = n.species, ncol = ncol(mat))
 parameters$link_phi_epsilon <- fit.int$par[names(fit.int$par) == "link_phi_epsilon"]
 parameters$log_sigma_epsilon <- fit.int$par[names(fit.int$par) == "log_sigma_epsilon"]
