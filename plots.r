@@ -55,7 +55,7 @@ for (i in 1:n.species){
 ## 5 = "whale"
 ## 6 = "brydeplus"
 ## Choose a species.
-s <- 6
+s <- 1
 ## Choose a model.
 m <- 6
 ## Grabbing the objects related to this model fit.
@@ -247,7 +247,7 @@ for (i in 1:n.plots){
 ## function.
 
 ## Choose a species. Same codes as above.
-s <- 6
+s <- 1
 
 ## Getting taus.
 tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
@@ -277,7 +277,6 @@ xx <- seq(0, 2*pi, length.out = 1000)
 yy <- cos(xx - gamma)
 plot(xx, yy, type = "l")
 
-## Just plotting the 
 
 ## Same for cosfiltered temperature effect.
 tau.cf <- exp(rep.summary[[s]][["cf"]][rownames(rep.summary[[s]][["cf"]]) == "log_tau_u_cf", 1])
