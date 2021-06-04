@@ -2,11 +2,11 @@ library(TMB)
 ## Number of species.
 n.species <- 6
 ## Filename indicator for each of the models.
-model.ext <- c("cf", "fixed-p", "fixed", "int-p", "int-sep", "int", "st-p", "st")
+model.ext <- c("cf", "fixed-p", "fixed", "st-add", "int-p", "int-sep", "int", "st-p", "st")
 ## R object indicator for each of the models.
 model.names <- chartr("-", ".", model.ext)
 ## Because I didn't name things consitently...
-model.names[5] <- "int.psi"
+model.names[6] <- "int.psi"
 ## Number of models.
 n.models <- length(model.ext)
 
