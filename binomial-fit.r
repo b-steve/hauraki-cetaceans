@@ -13,15 +13,16 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- TRUE
-do.fixed.p <- TRUE
-do.st.add <- TRUE
-do.st <- TRUE
-do.st.p <- TRUE
-do.int <- TRUE
-do.int.psi <- TRUE
-do.int.p <- TRUE
-do.cf <- TRUE
+do.fixed <- FALSE
+do.fixed.p <- FALSE
+do.st.add <- FALSE
+do.st.add.int <- TRUE
+do.st <- FALSE
+do.st.p <- FALSE
+do.int <- FALSE
+do.int.psi <- FALSE
+do.int.p <- FALSE
+do.cf <- FALSE
 
 ## Loading in the data.
 load("sighting.RData")
@@ -310,6 +311,37 @@ if (do.st.add){
         save(fit.st.add, sdrep.st.add, d.full.st.add, file = "fit-st-add.RData")
     }
     rm(obj.st.add)
+}
+
+## Same as above, but it also includes a spatially varying effect of
+## temperature.
+data.st.add$fit_int <- 1
+if (do.st.add.int){
+    obj.st.add.int <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
+                                random = c("psi_t_all", "omega_s_all"),
+                                map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                           u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                           link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                           log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                           log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                           log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                           log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                           link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                                DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.st.add.int <- nlminb(obj.st.add.int$par, obj.st.add.int$fn, obj.st.add.int$gr)
+    ## Getting sdreport.
+    sdrep.st.add.int <- sdreport(obj.st.add.int)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.st.add.int <- plogis(obj.st.add.int$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.st.add.int, sdrep.st.add.int, d.full.st.add.int,
+             file = paste0("fit-st-add-int-species-", species, ".RData"))
+    } else {
+        save(fit.st.add.int, sdrep.st.add.int, d.full.st.add.int, file = "fit-st-add-int.RData")
+    }
+    rm(obj.st.add.int)
 }
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
