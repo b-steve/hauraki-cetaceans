@@ -318,7 +318,7 @@ if (do.st.add){
 data.st.add$fit_int <- 1
 if (do.st.add.int){
     obj.st.add.int <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
-                                random = c("psi_t_all", "omega_s_all"),
+                                random = c("psi_t_all", "omega_s_all", "u_int_all"),
                                 map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
                                            u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                            link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
