@@ -64,28 +64,36 @@ plot.surf <- function(species = 1, model = 1, month = 1, surf = "d", show.obs = 
     fit <- fit[[species]][[model]]
     if (surf == "d"){
         z.full <- d.full[[species]][[model]]
+        z <- z.full[1, , month]
+        if (is.null(zlim)){
+            zlim <- c(0, quantile(z.full[1, , ], 0.99))
+        }
+        if (is.null(cols)){
+            cols <- brewer.pal(9, "Blues")
+        }
+        if (is.null(main)){
+            main <- monthyear.id[month]
+        }
+    } else if (surf == "int"){
+        tau.u.int <- exp(rep.summary[[species]][["int"]][rownames(rep.summary[[species]][["int"]]) == "log_tau_u_int", 1])
+        z <- rand.summary[[species]][["int"]][rownames(rand.summary[[species]][["int"]]) == "u_int_all", 1]/tau.u.int
+        if (is.null(cols)){
+            cols <- rev(brewer.pal(11, "RdBu"))
+        }
+        if (is.null(zlim)){
+            zlim <- range(z)
+        }
     }
-    rep.summary <- rep.summary[[species]][[model]]
-    rand.summary <- rand.summary[[species]][[model]]
+    zmin <- zlim[1]
+    zmax <- zlim[2]
     proj <- inla.mesh.projector(mesh)
-    field.proj <- inla.mesh.project(proj, z.full[1, , month])
-    if (is.null(zlim)){
-        zmax <- quantile(z.full[1, , ], 0.99)
-        zlim <- c(0, zmax)
-    } else {
-        zmax <- zlim[2]
-    }
-    if (is.null(cols)){
-        cols <- brewer.pal(9, "Blues")
-    }
+    field.proj <- inla.mesh.project(proj, z)
     field.proj[field.proj > zmax] <- zmax
-    if (is.null(main)){
-        main <- monthyear.id[month]
-    }
+    field.proj[field.proj < zmin] <- zmin
     image.plot(list(x = proj$x, y = proj$y, z = field.proj), col = cols,
                zlim = zlim, main = main)
     plot.coast()
-    if (show.obs){
+    if (surf == "d" & show.obs){
         which.counts <- which(y[month.id == month, species] > 0)
         points(obs.xc[which.counts], obs.yc[which.counts], pch = 16, col = "black")
     }
@@ -106,4 +114,34 @@ save.gif <- function(species = 1, model = 1, file = paste0("species-", species, 
     }
     system(paste0("convert -delay 20 -loop 0 tmp/*.jpg ", file))
     unlink("tmp", recursive = TRUE)
+}
+
+plot.effort <- function(cols = NULL){
+    if (is.null(cols)){
+        cols <- brewer.pal(9, "Blues")
+    }
+    v <- sighting.df$av.vesselprob
+    u.x <- sort(unique(obs.xc))
+    u.y <- sort(unique(obs.yc))
+    z.v <- matrix(0, nrow = length(u.y), ncol = length(u.x))
+    for (xi in 1:length(u.x)){
+        for (yi in 1:length(u.y)){
+            w.p <- which(obs.xc == u.x[xi] & obs.yc == u.y[yi])
+            if (length(w.p) == 0){
+                z.v[yi, xi] <- 0
+            } else {
+                z.v[yi, xi] <- v[w.p[1]]
+            }
+        }
+    }
+    z.max <- quantile(z.v, 0.95)
+    z.v[z.v > z.max] <- z.max
+    u.x.offset <- diff(u.x[1:2])
+    u.y.offset <- diff(u.y[1:2])
+    image.plot(list(x = c(u.x - u.x.offset, u.x[length(u.x)] + u.x.offset),
+                    y = c(u.y - u.y.offset, u.y[length(u.y)] + u.y.offset),
+                    z = t(z.v)),
+               col = cols, zlim = c(0, z.max), axes = FALSE)
+    box()
+    plot.coast()
 }

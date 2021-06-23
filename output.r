@@ -1,4 +1,5 @@
 ## Loading in packages.
+library(TMB)
 library(INLA)
 library(RColorBrewer)
 library(fields)
@@ -21,38 +22,20 @@ calc.aics()
 ## 5 = "whale"
 ## 6 = "brydeplus"
 ## Choose a model via names(fit[[1]])
-## Choose a surface, either "d" or "int".
-plot.surf(species = 6, model = 7, month = 100, show.obs = TRUE)
+## Plotting estimated relative density for a particular month/species/model.
+plot.surf(species = 6, model = 8, month = 100, show.obs = TRUE)
+## Plotting estimated spatially varying effect of temperature for a particular species/model.
+plot.surf(species = 3, model = 5, surf = "int")
+## Make a distribution gif for a species-model combination.
+save.gif(species = 3, model = 7)
+## Plot survey effort.
+plot.effort()
 
-save.gif(species = 6, model = 7)
-
-do.eff <- false
-if (do.eff){
-    ## Plotting survey effort.
-    v <- sighting.df$av.vesselprob
-    u.x <- sort(unique(obs.xc))
-    u.y <- sort(unique(obs.yc))
-    z.v <- matrix(0, nrow = length(u.y), ncol = length(u.x))
-    for (xi in 1:length(u.x)){
-        for (yi in 1:length(u.y)){
-            w.p <- which(obs.xc == u.x[xi] & obs.yc == u.y[yi])
-            if (length(w.p) == 0){
-                z.v[yi, xi] <- 0
-            } else {
-                z.v[yi, xi] <- v[w.p[1]]
-            }
-        }
-    }
-    z.max <- quantile(z.v, 0.95)
-    z.v[z.v > z.max] <- z.max
-    u.x.offset <- diff(u.x[1:2])
-    u.y.offset <- diff(u.y[1:2])
-    image.plot(list(x = c(u.x - u.x.offset, u.x[length(u.x)] + u.x.offset),
-                    y = c(u.y - u.y.offset, u.y[length(u.y)] + u.y.offset),
-                    z = t(z.v)),
-               col = cols, zlim = c(0, z.max), axes = FALSE)
-    box()
-    plot(NZ, col = "grey", add = TRUE)
+## For example, here's an interaction plot for all species.
+par(mfrow = c(3, 2))
+best.mod <- c(8, 8, 5, 5, 8, 8)
+for (i in 1:6){
+    plot.surf(species = i, model = best.mod[i], surf = "int")
 }
 
 do.occ <- FALSE
