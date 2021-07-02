@@ -156,7 +156,7 @@ Type objective_function<Type>::operator() ()
     d_fixed_logit_pred = mat_pred*betas_s;
     for (int i = 0; i < n_meshnodes; i++){
       for (int j = 0; j < n_months; j++){
-	d_full_logit(s,i,j) = d_fixed_logit_pred(j) + epsilon_st(i, j);
+	d_full_logit(s,i,j) = d_fixed_logit_pred(j) + psi_t(i) + omega_s(i) + epsilon_st(i, j);
 	// Adding contribution from u_int.
 	if (fit_int == 1){
 	  d_full_logit(s,i,j) += month_temp_centred(j)*u_int(i)/tau_u_int(s);
