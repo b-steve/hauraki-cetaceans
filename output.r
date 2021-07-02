@@ -14,6 +14,9 @@ source("plot-funs.r")
 
 calc.aics()
 
+species = 6; model = 8; month = 1; surf = "d"; show.obs = FALSE; zlim = NULL; cols = NULL; main = NULL
+
+
 ## Choose a species:
 ## 1 = "byrde",
 ## 2 = "cdolp",
@@ -25,9 +28,25 @@ calc.aics()
 ## Plotting estimated relative density for a particular month/species/model.
 plot.surf(species = 6, model = 8, month = 100, show.obs = TRUE)
 ## Plotting estimated spatially varying effect of temperature for a particular species/model.
+plot.surf(species = 6, model = 8, surf = "int")
+## Plotting estimated spatial effect.
+plot.surf(species = 3, model = 5, surf = "omega")
+plot.surf(species = 3, model = 5, month = 100, show.obs = TRUE)
 plot.surf(species = 3, model = 5, surf = "int")
+
+## Comaring hot-spot plots between species.
+pdf(file = "hotspot.pdf", height = 8, width = 3)
+par(mfrow = c(3, 1))
+plot.surf(species = 2, model = 8, surf = "int")
+plot.surf(species = 6, model = 8, surf = "int")
+plot.surf(species = 3, model = 5, surf = "int")
+dev.off()
+
+
+species = 3; model = 5; surf = "int"; show.obs = FALSE; zlim = NULL; cols = NULL; main = NULL
+
 ## Make a distribution gif for a species-model combination.
-save.gif(species = 3, model = 7)
+save.gif(species = 3, model = 5, show.obs = TRUE)
 ## Plot survey effort.
 plot.effort()
 
