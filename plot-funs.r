@@ -74,6 +74,14 @@ plot.surf <- function(species = 1, model = 1, month = 1, surf = "d", show.obs = 
         if (is.null(main)){
             main <- monthyear.id[month]
         }
+    } else if (surf == "omega"){
+        z <- rand.summary[[species]][[model]][rownames(rand.summary[[species]][[model]]) == "omega_s_all", 1]
+        if (is.null(zlim)){
+            zlim <- c(0, quantile(z, 0.99))
+        }
+        if (is.null(cols)){
+            cols <- brewer.pal(9, "Blues")
+        }        
     } else if (surf == "int"){
         tau.u.int <- exp(rep.summary[[species]][["int"]][rownames(rep.summary[[species]][["int"]]) == "log_tau_u_int", 1])
         z <- rand.summary[[species]][["int"]][rownames(rand.summary[[species]][["int"]]) == "u_int_all", 1]/tau.u.int
