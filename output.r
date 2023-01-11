@@ -12,7 +12,9 @@ load("sighting.RData")
 NZ <- readOGR(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
 source("plot-funs.r")
 
-calc.aics()
+## AICs for model selection.
+aics <- calc.aics()
+aics
 
 
 ## Choose a species:
@@ -30,42 +32,37 @@ plot.surf(species = 6, model = 8, surf = "int")
 ## Plotting estimated spatial effect.
 plot.surf(species = 3, model = 5, surf = "omega")
 
-pdf(file = "~/Desktop/hotspot.pdf")
-plot.surf(species = 3, model = 5, month = 96, show.obs = TRUE)
-plot.surf(species = 3, model = 5, month = 102, show.obs = TRUE)
-plot.surf(species = 3, model = 5, surf = "int")
-dev.off()
-
-
 ## Make a distribution gif for a species-model combination.
 save.gif(species = 3, model = 5, show.obs = TRUE)
 ## Plot survey effort.
 plot.effort()
 
-## For example, here's an interaction plot for all species.
+## For example, here's a plot of the spatially varying effect of
+## temperature for all species.
 par(mfrow = c(3, 2))
-best.mod <- c(8, 8, 5, 5, 8, 8)
+## Just using the model 5 for these, which isn't actually the best
+## model for every species.
 for (i in 1:6){
-    plot.surf(species = i, model = best.mod[i], surf = "int")
+    plot.surf(species = i, model = 5, surf = "int")
 }
 
 do.occ <- FALSE
 if (do.occ){
     ## Plotting changes in occupancy at a specific location over time.
-    
-    ## First, choose a location by selecting a number from the following plot.
-    field.proj <- inla.mesh.project(proj, d.full[[s]][[m]][1, , i])
-    image.plot(list(x = proj$x, y = proj$y, z = 1000*field.proj), col = cols,
-               zlim = c(0, zmax), main = monthyear.id[i], asp = 1)
-                                        #points(obs.xc, obs.yc, pch = ".", cex = 3)
+        
+    ## First, choose location(s) by selecting a number from the
+    ## following plot. You might need to make the graphics window
+    ## larger to see all the numbers.
+    plot.surf(species = 1, model = 1, month = 1)
     text(mesh$loc[, 1], mesh$loc[, 2], labels = 1:nrow(mesh$loc), cex = 0.75)
-    plot(NZ, col = "grey", add = TRUE)
     ## To see the lat/long coordinates of each location, look in mesh$loc.
     
     ## Enter location IDs here.
     ps <- c(310, 311, 292, 295)
     n.plots <- length(ps)
     cols <- brewer.pal(6, "Set1")
+    ## Mesh projection.
+    proj <- inla.mesh.projector(mesh)
     ## Set to TRUE for same scale.
     same.scale <- FALSE
     ## Sorting out layout.
@@ -85,7 +82,7 @@ if (do.occ){
         p <- ps[i]
         for (s in 1:6){
             ## Note: probably need to set a species-specific model here.
-            m <- which(aic.best.tab[s, ])
+            m <- which(aics$best[s, ])
             all.ds[i, , s] <- d.full[[s]][[m]][1, p, ]
         }
     }
@@ -117,9 +114,11 @@ if (do.occ){
         }
         if (separate.maps){
             plot.new()
-            plot.window(xlim = bbox.small[, 1], ylim = bbox.small[, 2], asp = 1)
+            plot.window(xlim = range(proj$x), ylim = range(proj$y), asp = 1)
             box()
-            plot(NZ, col = "grey", add = TRUE)
+            plot.coast()
+            #box()
+            #plot(NZ, col = "grey", add = TRUE)
             pts.cols <- rep(cols[2], 4)
             pts.cols[i] <- cols[1]
             points(mesh$loc[ps, 1], mesh$loc[ps, 2], col = pts.cols, pch = 16)
