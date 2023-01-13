@@ -27,12 +27,16 @@ aics
 ## Choose a model via names(fit[[1]])
 ## Plotting estimated relative density for a particular month/species/model.
 plot.surf(species = 6, model = 8, month = 100, show.obs = TRUE)
-## Plotting estimated spatially varying effect of temperature for a particular species/model.
-plot.surf(species = 6, model = 8, surf = "int")
-## Plotting estimated spatial effect.
+## Plotting estimated spatially varying effect of temperature for a
+## particular species/model. Only makes sense for models 1, 5, 6, 7,
+## 8, which include such an effect.
+plot.surf(species = 1, model = 1, surf = "int")
+## Plotting estimated spatial effect. This only makes sense for models
+## 4 and 5, which have a single constant wiggly spatial field over
+## time.
 plot.surf(species = 3, model = 5, surf = "omega")
 
-## Make a distribution gif for a species-model combination.
+## Make a distribution gif for a species/model combination.
 save.gif(species = 3, model = 5, show.obs = TRUE)
 ## Plot survey effort.
 plot.effort()
@@ -46,18 +50,18 @@ for (i in 1:6){
     plot.surf(species = i, model = 5, surf = "int")
 }
 
+## Plotting changes in occupancy at a specific location over time.
 do.occ <- FALSE
 if (do.occ){
-    ## Plotting changes in occupancy at a specific location over time.
-        
-    ## First, choose location(s) by selecting a number from the
-    ## following plot. You might need to make the graphics window
-    ## larger to see all the numbers.
-    plot.surf(species = 1, model = 1, month = 1)
-    text(mesh$loc[, 1], mesh$loc[, 2], labels = 1:nrow(mesh$loc), cex = 0.75)
+    
+    ## Uncomment and run the code below to choose location(s)
+    ## by selecting a number from the following plot. You might need
+    ## to make the graphics window larger to see all the numbers.
+    #plot.surf(species = 1, model = 1, month = 1)
+    #text(mesh$loc[, 1], mesh$loc[, 2], labels = 1:nrow(mesh$loc), cex = 0.75)
     ## To see the lat/long coordinates of each location, look in mesh$loc.
     
-    ## Enter location IDs here.
+    ## The locations IDs from above go here.
     ps <- c(310, 311, 292, 295)
     n.plots <- length(ps)
     cols <- brewer.pal(6, "Set1")
@@ -117,8 +121,6 @@ if (do.occ){
             plot.window(xlim = range(proj$x), ylim = range(proj$y), asp = 1)
             box()
             plot.coast()
-            #box()
-            #plot(NZ, col = "grey", add = TRUE)
             pts.cols <- rep(cols[2], 4)
             pts.cols[i] <- cols[1]
             points(mesh$loc[ps, 1], mesh$loc[ps, 2], col = pts.cols, pch = 16)
