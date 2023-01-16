@@ -14,6 +14,18 @@ source("plot-funs.r")
 
 ## AICs for model selection.
 aics <- calc.aics()
+## This is a list with a bunch of components:
+## - $aic is the AIC value for each species-model pair.
+## - $diff is the difference between a model's AIC and the model with
+##   the best AIC for that species.
+## - $converged indicates whether or not the optimisation algorithm
+##   converged.
+## - $fitted indicates whether or not we actually tried to fit the
+##   model (there's no point fitting some of the comlicated models to
+##   species with low numbers of sightings).
+## - $best has a TRUE entry in the best model (by AIC) for each
+##   species.
+## - $best.converged can be ignored.
 aics
 
 
