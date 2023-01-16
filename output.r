@@ -197,7 +197,7 @@ if (do.st.add){
 
     ## Plotting temporal process.
     psi.t.est <- rand.summary[[s]][[m]][rownames(rand.summary[[s]][[m]]) == "psi_t_all", 1]
-    plot(psi.t.est, type = "l", main = species.names[s])
+    plot(psi.t.est, type = "l")
     abline(v = 12*(0:20), lty = "dotted")
 }
 
