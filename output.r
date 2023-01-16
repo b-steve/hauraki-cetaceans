@@ -163,22 +163,10 @@ if (do.int){
     ## Choose a species. Same codes as above.
     s <- 1
     
-    ## Getting taus.
-    tau.u.int <- exp(rep.summary[[s]][["int"]][rownames(rep.summary[[s]][["int"]]) == "log_tau_u_int", 1])
-    tau.u.int.p <- exp(rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "log_tau_u_int", 1])
     ## Side-by-side plots for models int and int-p.
     par(mfrow = c(2, 2))
-    u.int.est <- rand.summary[[s]][["int"]][rownames(rand.summary[[s]][["int"]]) == "u_int_all", 1]/tau.u.int
-    u.int.est.p <- rand.summary[[s]][["int-p"]][rownames(rand.summary[[s]][["int-p"]]) == "u_int_all", 1]/tau.u.int.p
-    proj <- inla.mesh.projector(mesh)
-    field.proj.int <- inla.mesh.project(proj, u.int.est)
-    field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
-    cols <- rev(brewer.pal(11, "RdBu"))
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int)), col = cols)
-    plot(NZ, col = "grey", add = TRUE)
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int.p)), col = cols)
-    plot(NZ, col = "grey", add = TRUE)
-    ##points(obs.xc, obs.yc, pch = ".")
+    plot.surf(species = s, model = 8, surf = "int")
+    plot.surf(species = s, model = 6, surf = "int")
     ## Plotting average temperature for each month.
     average.month.temp <- numeric(12)
     for (i in 1:12){
@@ -190,44 +178,25 @@ if (do.int){
     xx <- seq(0, 2*pi, length.out = 1000)
     yy <- cos(xx - gamma)
     plot(xx, yy, type = "l")
-    
-    
+     
     ## Same for cosfiltered temperature effect.
-    tau.cf <- exp(rep.summary[[s]][["cf"]][rownames(rep.summary[[s]][["cf"]]) == "log_tau_u_cf", 1])
-    u.cf.est <- rand.summary[[s]][["cf"]][rownames(rand.summary[[s]][["cf"]]) == "u_cf_all", 1]/tau.cf
-    proj <- inla.mesh.projector(mesh)
-    field.proj.cf <- inla.mesh.project(proj, u.cf.est)
-    cols <- rev(brewer.pal(11, "RdBu"))
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.cf)), col = cols)
-    plot(NZ, col = "grey", add = TRUE)
-    
-    ## Getting taus.
-    tau.u.int <- exp(rep.summary[[s]][["cf"]][rownames(rep.summary[[s]][["cf"]]) == "log_tau_u_int", 1])
-    u.int.est <- rand.summary[[s]][["cf"]][rownames(rand.summary[[s]][["cf"]]) == "u_int_all", 1]/tau.u.int
-    proj <- inla.mesh.projector(mesh)
-    field.proj.int <- inla.mesh.project(proj, u.int.est)
-    field.proj.int.p <- inla.mesh.project(proj, u.int.est.p)
-    cols <- rev(brewer.pal(11, "RdBu"))
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.int)), col = cols)
-    plot(NZ, col = "grey", add = TRUE)
+    ## This is for a seasonal redistribution.
+    plot.surf(species = s, model = 1, surf = "int")
+    ## This is for a fluctuation with cosfiltered temperature.
+    plot.surf(species = s, model = 1, surf = "int-cf")
 }
-
-pdf("~/Desktop/st-plots")
 
 do.st.add <- TRUE
 if (do.st.add){
     ## Plots of the spatial omega field and temporal psi field for the
     ## st-add models.
-    s <- 4
-    omega.s.est <- rand.summary[[s]][["st-add"]][rownames(rand.summary[[s]][["st-add"]]) == "omega_s_all", 1]
-    proj <- inla.mesh.projector(mesh)
-    field.proj.omega <- inla.mesh.project(proj, omega.s.est)
-    cols <- rev(brewer.pal(11, "RdBu"))
-    image.plot(list(x = proj$x, y = proj$y, z = exp(field.proj.omega)), col = cols, main = species.names[s])
-    plot(NZ, col = "grey", add = TRUE)
+    s <- 3
+    ## Either model 4 or 5 for an omega field.
+    m <- 5
+    plot.surf(species = s, model = m, surf = "omega")
 
-    
-    psi.t.est <- rand.summary[[s]][["st-add"]][rownames(rand.summary[[s]][["st-add"]]) == "psi_t_all", 1]
+    ## Plotting temporal process.
+    psi.t.est <- rand.summary[[s]][[m]][rownames(rand.summary[[s]][[m]]) == "psi_t_all", 1]
     plot(psi.t.est, type = "l", main = species.names[s])
     abline(v = 12*(0:20), lty = "dotted")
 }
