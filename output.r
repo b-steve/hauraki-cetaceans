@@ -21,7 +21,7 @@ aics <- calc.aics()
 ## - $converged indicates whether or not the optimisation algorithm
 ##   converged.
 ## - $fitted indicates whether or not we actually tried to fit the
-##   model (there's no point fitting some of the comlicated models to
+##   model (there's no point fitting some of the complicated models to
 ##   species with low numbers of sightings).
 ## - $best has a TRUE entry in the best model (by AIC) for each
 ##   species.
