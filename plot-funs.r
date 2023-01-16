@@ -84,7 +84,16 @@ plot.surf <- function(species = 1, model = 1, month = 1, surf = "d", show.obs = 
         }        
     } else if (surf == "int"){
         tau.u.int <- exp(rep.summary[[species]][[model]][rownames(rep.summary[[species]][[model]]) == "log_tau_u_int", 1])
-        z <- rand.summary[[species]][[model]][rownames(rand.summary[[species]][[model]]) == "u_int_all", 1]/tau.u.int
+        z <- exp(rand.summary[[species]][[model]][rownames(rand.summary[[species]][[model]]) == "u_int_all", 1]/tau.u.int)
+        if (is.null(cols)){
+            cols <- rev(brewer.pal(11, "RdBu"))
+        }
+        if (is.null(zlim)){
+            zlim <- range(z)
+        }
+    } else if (surf == "int-cf"){
+        tau.cf <- exp(rep.summary[[species]][[model]][rownames(rep.summary[[species]][[model]]) == "log_tau_u_cf", 1])
+        z <- exp(rand.summary[[species]][[model]][rownames(rand.summary[[species]][[model]]) == "u_cf_all", 1]/tau.cf)
         if (is.null(cols)){
             cols <- rev(brewer.pal(11, "RdBu"))
         }
