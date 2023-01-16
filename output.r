@@ -164,7 +164,7 @@ if (do.int){
     s <- 1
     
     ## Side-by-side plots for models int and int-p.
-    par(mfrow = c(2, 2))
+    par(mfrow = c(3, 2))
     plot.surf(species = s, model = 8, surf = "int")
     plot.surf(species = s, model = 6, surf = "int")
     ## Plotting average temperature for each month.
