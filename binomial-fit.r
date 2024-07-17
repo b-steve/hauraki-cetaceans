@@ -19,10 +19,10 @@ do.sv <- TRUE
 do.sv.p <- TRUE
 do.st.add <- FALSE
 do.st.add.int <- FALSE
-do.st <- TRUE
-do.st.p <- TRUE
-do.int <- TRUE
-do.int.p.sst <- TRUE
+do.st <- FALSE
+do.st.p <- FALSE
+do.int <- FALSE
+do.int.p.sst <- FALSE
 do.int.psi <- FALSE
 do.int.p <- FALSE
 do.cf <- FALSE
@@ -289,7 +289,6 @@ if (do.sv){
                         map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
                                    omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
                                    epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
-                                   u_int_all = factor(rep(NA, length(parameters$u_int_all))),
                                    u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                    link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
                                    log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
@@ -321,14 +320,13 @@ data$fit_int <- 0
 
 ## Same again but with periodic regression for the fixed effects.
 parameters.p$betas <- matrix(fit.fixed.p$par, nrow = n.species, ncol = ncol(mat.p))
-data.p$fit.int <- 1
+data.p$fit_int <- 1
 if (do.sv.p){
     obj.sv.p <- MakeADFun(data = data.p, parameters = parameters.p,
                           random = "u_int_all",
                           map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
                                      omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
                                      epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
-                                     u_int_all = factor(rep(NA, length(parameters$u_int_all))),
                                      u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
                                      link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
                                      log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
@@ -356,7 +354,7 @@ if (do.sv.p){
     }
     rm(obj.sv.p)
 }
-data.p$fit.int <- 1
+data.p$fit_int <- 0
 
 ## Making TMB model for an additive spatiotemporal model. This adds
 ## separate wiggly spatial and temporal fields in an additive way, so
