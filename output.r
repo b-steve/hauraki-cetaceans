@@ -28,6 +28,15 @@ aics <- calc.aics()
 ## - $best.converged can be ignored.
 aics
 
+aics.selected <- vector(mode = "list", length = 2)
+names(aics.selected) <- c("aic", "diff")
+aics.selected$aic <- aics$aic[, c(2, 3, 4, 5, 7, 9, 10, 11, 12, 13)]
+aics.selected$diff <- matrix(0, nrow = nrow(aics.selected$aic), ncol = ncol(aics.selected$aic))
+colnames(aics.selected$diff) <- colnames(aics.selected$aic)
+rownames(aics.selected$diff) <- rownames(aics.selected$aic)
+for (i in 1:nrow(aics.selected$aic)){
+    aics.selected$diff[i, ] <- aics.selected$aic[i, ] - min(aics.selected$aic[i, ], na.rm = TRUE)
+}
 
 ## Choose a species:
 ## 1 = "byrde",
