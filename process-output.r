@@ -2,7 +2,7 @@ library(TMB)
 ## Number of species.
 n.species <- 6
 ## Filename indicator for each of the models.
-model.ext <- c("cf", "fixed-p", "fixed", "st-add", "st-add-int", "int-p", "int-sep", "int", "st-p", "st")
+model.ext <- c("cf", "fixed-p", "fixed", "st-add", "st-add-int", "int-p", "int-p-sst", "int-sep", "int", "st-p", "st", "sv", "sv-p")
 ## R object indicator for each of the models.
 model.names <- chartr("-", ".", model.ext)
 ## Because I didn't name things consitently...
