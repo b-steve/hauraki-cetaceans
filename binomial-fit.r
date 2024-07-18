@@ -13,12 +13,14 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- TRUE
-do.fixed.p <- TRUE
-do.sv <- TRUE
-do.sv.p <- TRUE
+do.fixed <- FALSE
+do.fixed.p <- FALSE
+do.sv <- FALSE
+do.sv.p <- FALSE
 do.st.add <- FALSE
-do.st.add.int <- FALSE
+do.st.add.p <- FALSE
+do.st.add.int <- TRUE
+do.st.add.int.p <- TRUE
 do.st <- FALSE
 do.st.p <- FALSE
 do.int <- FALSE
@@ -192,6 +194,7 @@ parameters.cf <- parameters
 parameters.cf$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.cf))
 ## Data for model with additive space and time effects.
 data.st.add <- data
+data.st.add.p <- data.p
 ## Parameters for model with additive space and time effects.
 parameters.st.add <- parameters
 
@@ -236,6 +239,8 @@ if (do.fixed){
         save(fit.fixed, sdrep.fixed, d.full.fixed, file = "fit-fixed.RData")
     }
     rm(obj.fixed)
+} else {
+    load(paste0("fit-fixed-species-", species, ".RData"))
 }
 
 if (do.fixed.p){
@@ -277,6 +282,8 @@ if (do.fixed.p){
         save(fit.fixed.p, sdrep.fixed.p, d.full.fixed.p, file = "fit-fixed-p.RData")
     }
     rm(obj.fixed.p)
+} else {
+    load(paste0("fit-fixed-p-species-", species, ".RData"))
 }
 
 ## Same as fit.fixed, but with a spatially varying effect of
@@ -315,6 +322,8 @@ if (do.sv){
         save(fit.sv, sdrep.sv, d.full.sv, file = "fit-sv.RData")
     }
     rm(obj.sv)
+} else {
+    load(paste0("fit-sv-species-", species, ".RData"))
 }
 data$fit_int <- 0
 
@@ -353,6 +362,8 @@ if (do.sv.p){
         save(fit.sv.p, sdrep.sv.p, d.full.sv.p, file = "fit-sv-p.RData")
     }
     rm(obj.sv.p)
+} else {
+    load(paste0("fit-sv-p-species-", species, ".RData"))
 }
 data.p$fit_int <- 0
 
@@ -391,9 +402,47 @@ if (do.st.add){
         save(fit.st.add, sdrep.st.add, d.full.st.add, file = "fit-st-add.RData")
     }
     rm(obj.st.add)
+} else {
+    load(paste0("fit-st-add-species-", species, ".RData"))
 }
 
-## Same as above, but it also includes a spatially varying effect of
+## Same as above but with periodic regression as the fixed effects.
+data.st.add.p$fit_psi <- 1
+data.st.add.p$fit_omega <- 1
+if (do.st.add.p){
+    obj.st.add.p <- MakeADFun(data = data.st.add.p, parameters = parameters.p,
+                            random = c("psi_t_all", "omega_s_all"),
+                            map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                       u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.st.add.p <- nlminb(obj.st.add.p$par, obj.st.add.p$fn, obj.st.add.p$gr)
+    ## Getting sdreport.
+    sdrep.st.add.p <- sdreport(obj.st.add.p)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.st.add.p <- plogis(obj.st.add.p$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.st.add.p, sdrep.st.add.p, d.full.st.add.p,
+             file = paste0("fit-st-add-p-species-", species, ".RData"))
+    } else {
+        save(fit.st.add.p, sdrep.st.add.p, d.full.st.add.p, file = "fit-st-add-p.RData")
+    }
+    rm(obj.st.add.p)
+} else {
+    load(paste0("fit-st-add-p-species-", species, ".RData"))
+}
+
+## Same as st.add, but it also includes a spatially varying effect of
 ## temperature.
 data.st.add$fit_int <- 1
 if (do.st.add.int){
@@ -422,6 +471,40 @@ if (do.st.add.int){
         save(fit.st.add.int, sdrep.st.add.int, d.full.st.add.int, file = "fit-st-add-int.RData")
     }
     rm(obj.st.add.int)
+} else {
+    load(paste0("fit-st-add-int-species-", species, ".RData"))
+}
+
+## Same as above, but with periodic regression for the fixed effects.
+data.st.add.p$fit_int <- 1
+if (do.st.add.int.p){
+    obj.st.add.int.p <- MakeADFun(data = data.st.add.p, parameters = parameters.p,
+                                  random = c("psi_t_all", "omega_s_all", "u_int_all"),
+                                  map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                             u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                             link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                             log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                             log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                             log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                             log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                             link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                                  DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.st.add.int.p <- nlminb(obj.st.add.int.p$par, obj.st.add.int.p$fn, obj.st.add.int.p$gr)
+    ## Getting sdreport.
+    sdrep.st.add.int.p <- sdreport(obj.st.add.int.p)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.st.add.int.p <- plogis(obj.st.add.int.p$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.st.add.int.p, sdrep.st.add.int.p, d.full.st.add.int.p,
+             file = paste0("fit-st-add-int-p-species-", species, ".RData"))
+    } else {
+        save(fit.st.add.int.p, sdrep.st.add.int.p, d.full.st.add.int.p, file = "fit-st-add-int.RData")
+    }
+    rm(obj.st.add.int.p)
+} else {
+    load(paste0("fit-st-add-int-p-species-", species, ".RData"))
 }
 
 ## Making TMB object for spatiotemporal model. This adds a wiggly
@@ -463,6 +546,8 @@ if (do.st){
         save(fit.st, sdrep.st, d.full.st, file = "fit-st.RData")
     }
     rm(obj.st)
+} else {
+    load(paste0("fit-st-species-", species, ".RData"))
 }
 
 ## Making TMB object for spatiotemporal model, similar to above, but
@@ -504,6 +589,8 @@ if (do.st.p){
         save(fit.st.p, sdrep.st.p, d.full.st.p, file = "fit-st-p.RData")
     }
     rm(obj.st.p)
+} else {
+    load(paste0("fit-st-p-species-", species, ".RData"))
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -551,6 +638,8 @@ if (do.int){
         save(fit.int, sdrep.int, d.full.int, file = "fit-int.RData")
     }
     rm(obj.int)
+} else {
+    load(paste0("fit-int-species-", species, ".RData"))
 }
 
 ## Same as above, but with periodic regression for the fixed effects.
@@ -587,6 +676,8 @@ if (do.int.p.sst){
         save(fit.int.p.sst, sdrep.int.p.sst, d.full.int.p.sst, file = "fit-int-p-sst.RData")
     }
     rm(obj.int.p.sst)
+} else {
+    load(paste0("fit-int-p-sst-species-", species, ".RData"))
 }
 
 ## Same as above, but with the spatiotemporal field separated into two parts.
@@ -627,6 +718,8 @@ if (do.int.psi){
         save(fit.int.psi, sdrep.int.psi, d.full.int.psi, file = "fit-int-sep.RData")
     }
     rm(obj.int.psi)
+} else {
+    load(paste0("fit-int-p-sst-species-", species, ".RData"))
 }
 
 ## Making TMB object for spatiotemporal model with a
@@ -669,6 +762,8 @@ if (do.int.p){
         save(fit.int.p, sdrep.int.p, d.full.int.p, file = "fit-int-p.RData")
     }
     rm(obj.int.p)
+} else {
+    load(paste0("fit-int-p-sst-species-", species, ".RData"))
 }
 
 ## Making TMB object for spatiotemporal model with two types of
@@ -714,4 +809,6 @@ if (do.cf){
         save(fit.cf, sdrep.cf, d.full.cf, file = "fit-cf.RData")
     }
     rm(obj.cf)
+} else {
+    load(paste0("fit-cf-species-", species, ".RData"))
 }
