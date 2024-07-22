@@ -17,13 +17,23 @@ do.fixed <- FALSE
 do.fixed.p <- FALSE
 do.sv <- FALSE
 do.sv.p <- FALSE
+do.fixed.t <- FALSE
+do.fixed.t.p <- FALSE
+do.fixed.t.int <- FALSE
+do.fixed.t.int.p <- FALSE
+do.fixed.s <- FALSE
+do.fixed.s.p <- FALSE
+do.fixed.s.int <- FALSE
+do.fixed.s.int.p <- FALSE
 do.st.add <- FALSE
 do.st.add.p <- FALSE
-do.st.add.int <- TRUE
-do.st.add.int.p <- TRUE
+do.st.add.int <- FALSE
+do.st.add.int.p <- FALSE
 do.st <- FALSE
+do.st.nofixed <- TRUE
 do.st.p <- FALSE
 do.int <- FALSE
+do.int.nofixed <- TRUE
 do.int.p.sst <- FALSE
 do.int.psi <- FALSE
 do.int.p <- FALSE
@@ -124,6 +134,8 @@ mat.pred <- cbind(1, month.temp)
 mat.pred.p <- cbind(1, sin(month.jmonth.rad), cos(month.jmonth.rad))
 ## This one is set up for the cos-filtered temperature.
 mat.pred.cf <- cbind(1, month.temp, cosfilt.temp)
+## This one is set up for no fixed effects.
+mat.pred.nofixed <- cbind(rep(1, nrow(mat.pred)))
 
 ## Setting up the full design matrix (one row for each observation
 ## here). Whatever goes in here affects how many animals are estimated
@@ -133,6 +145,8 @@ mat <- mat.pred[month.id, ]
 mat.p <- mat.pred.p[month.id, ]
 ## ... And for cos-filtered temperature.
 mat.cf <- mat.pred.cf[month.id, ]
+## ... And for no fixed effects.
+mat.nofixed <- mat.pred.nofixed[month.id, , drop = FALSE]
 ## Cell visitation probabilities.
 v <- sighting.df$av.vesselprob
 ## Make alternations for substes of species here.
@@ -195,6 +209,14 @@ parameters.cf$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.cf))
 ## Data for model with additive space and time effects.
 data.st.add <- data
 data.st.add.p <- data.p
+## Data for model with no fixed effects.
+data.nofixed <- data
+data.nofixed$n_betas <- ncol(mat.nofixed)
+data.nofixed$mat <- mat.nofixed
+data.nofixed$mat_pred <- mat.pred.nofixed
+## Parameters for the model with no fixed effects.
+parameters.nofixed <- parameters
+parameters.nofixed$betas <- matrix(0, nrow = n.species, ncol = ncol(mat.nofixed))
 ## Parameters for model with additive space and time effects.
 parameters.st.add <- parameters
 
@@ -366,6 +388,314 @@ if (do.sv.p){
     load(paste0("fit-sv-p-species-", species, ".RData"))
 }
 data.p$fit_int <- 0
+
+## Making TMB model for a model with a temporal effect, but no spatial effect.
+data.st.add$fit_psi <- 1
+if (do.fixed.t){
+    obj.fixed.t <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
+                            random = c("psi_t_all"),
+                            map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                       omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                       u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                       log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                       log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.t <- nlminb(obj.fixed.t$par, obj.fixed.t$fn, obj.fixed.t$gr)
+    ## Getting sdreport.
+    sdrep.fixed.t <- sdreport(obj.fixed.t)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.t <- plogis(obj.fixed.t$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.t, sdrep.fixed.t, d.full.fixed.t,
+             file = paste0("fit-fixed-t-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.t, sdrep.fixed.t, d.full.fixed.t, file = "fit-fixed-t3.RData")
+    }
+    rm(obj.fixed.t)
+} else {
+    load(paste0("fit-fixed-t-species-", species, ".RData"))
+}
+data.st.add$fit_psi <- 0
+
+## Same but with periodic regression.
+data.st.add.p$fit_psi <- 1
+if (do.fixed.t.p){
+    obj.fixed.t.p <- MakeADFun(data = data.st.add.p, parameters = parameters.p,
+                            random = c("psi_t_all"),
+                            map = list(epsilon_st_all = factor(rep(NA, length(parameters.p$epsilon_st))),
+                                       omega_s_all = factor(rep(NA, length(parameters.p$omega_s_all))),
+                                       u_int_all = factor(rep(NA, length(parameters.p$u_int_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters.p$u_cf_all))),
+                                       log_kappa_omega = factor(rep(NA, length(parameters.p$log_kappa_omega))),
+                                       log_sigma_omega = factor(rep(NA, length(parameters.p$log_sigma_omega))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters.p$log_kappa_epsilon))),
+                                       log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
+                                       log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters.p$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters.p$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters.p$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.t.p <- nlminb(obj.fixed.t.p$par, obj.fixed.t.p$fn, obj.fixed.t.p$gr)
+    ## Getting sdreport.
+    sdrep.fixed.t.p <- sdreport(obj.fixed.t.p)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.t.p <- plogis(obj.fixed.t.p$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.t.p, sdrep.fixed.t.p, d.full.fixed.t.p,
+             file = paste0("fit-fixed-t-p-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.t.p, sdrep.fixed.t.p, d.full.fixed.t.p, file = "fit-fixed-t-p.RData")
+    }
+    rm(obj.fixed.t.p)
+} else {
+    load(paste0("fit-fixed-t-p-species-", species, ".RData"))
+}
+data.st.add.p$fit_psi <- 0
+
+## Now putting in a spatially varying effect of temperature.
+data.st.add$fit_psi <- 1
+data.st.add$fit_int <- 1
+if (do.fixed.t.int){
+    obj.fixed.t.int <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
+                            random = c("psi_t_all", "u_int_all"),
+                            map = list(epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                       omega_s_all = factor(rep(NA, length(parameters$omega_s_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                       log_kappa_omega = factor(rep(NA, length(parameters$log_kappa_omega))),
+                                       log_sigma_omega = factor(rep(NA, length(parameters$log_sigma_omega))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.t.int <- nlminb(obj.fixed.t.int$par, obj.fixed.t.int$fn, obj.fixed.t.int$gr)
+    ## Getting sdreport.
+    sdrep.fixed.t.int <- sdreport(obj.fixed.t.int)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.t.int <- plogis(obj.fixed.t.int$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.t.int, sdrep.fixed.t.int, d.full.fixed.t.int,
+             file = paste0("fit-fixed-t-int-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.t.int, sdrep.fixed.t.int, d.full.fixed.t.int, file = "fit-fixed-t-int3.RData")
+    }
+    rm(obj.fixed.t.int)
+} else {
+    load(paste0("fit-fixed-t-int-species-", species, ".RData"))
+}
+data.st.add$fit_psi <- 0
+data.st.add$fit_int <- 0
+
+## Same but with periodic regression.
+data.st.add.p$fit_psi <- 1
+data.st.add.p$fit_int <- 1
+if (do.fixed.t.int.p){
+    obj.fixed.t.int.p <- MakeADFun(data = data.st.add.p, parameters = parameters.p,
+                            random = c("psi_t_all", "u_int_all"),
+                            map = list(epsilon_st_all = factor(rep(NA, length(parameters.p$epsilon_st))),
+                                       omega_s_all = factor(rep(NA, length(parameters.p$omega_s_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters.p$u_cf_all))),
+                                       log_kappa_omega = factor(rep(NA, length(parameters.p$log_kappa_omega))),
+                                       log_sigma_omega = factor(rep(NA, length(parameters.p$log_sigma_omega))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters.p$log_kappa_epsilon))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters.p$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters.p$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters.p$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.t.int.p <- nlminb(obj.fixed.t.int.p$par, obj.fixed.t.int.p$fn, obj.fixed.t.int.p$gr)
+    ## Getting sdreport.
+    sdrep.fixed.t.int.p <- sdreport(obj.fixed.t.int.p)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.t.int.p <- plogis(obj.fixed.t.int.p$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.t.int.p, sdrep.fixed.t.int.p, d.full.fixed.t.int.p,
+             file = paste0("fit-fixed-t-int-p-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.t.int.p, sdrep.fixed.t.int.p, d.full.fixed.t.int.p, file = "fit-fixed-t-int-p.RData")
+    }
+    rm(obj.fixed.t.int.p)
+} else {
+    load(paste0("fit-fixed-t-int-p-species-", species, ".RData"))
+}
+data.st.add.p$fit_psi <- 0
+data.st.add.p$fit_int <- 0
+
+## Now with a spatial effect, but no temporal effect.
+data.st.add$fit_omega <- 1
+if (do.fixed.s){
+    obj.fixed.s <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
+                            random = c("omega_s_all"),
+                            map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                       epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                       u_int_all = factor(rep(NA, length(parameters$u_int_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                       link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                       log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                       log_kappa_u_int = factor(rep(NA, length(parameters$log_kappa_u_int))),
+                                       log_tau_u_int = factor(rep(NA, length(parameters$log_tau_u_int))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.s <- nlminb(obj.fixed.s$par, obj.fixed.s$fn, obj.fixed.s$gr)
+    ## Getting sdreport.
+    sdrep.fixed.s <- sdreport(obj.fixed.s)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.s <- plogis(obj.fixed.s$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.s, sdrep.fixed.s, d.full.fixed.s,
+             file = paste0("fit-fixed-s-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.s, sdrep.fixed.s, d.full.fixed.s, file = "fit-fixed-s.RData")
+    }
+    rm(obj.fixed.s)
+} else {
+    load(paste0("fit-fixed-s-species-", species, ".RData"))
+}
+data.st.add$fit_omega <- 0
+
+## Same again but with periodic fixed effects.
+data.st.add.p$fit_omega <- 1
+if (do.fixed.s.p){
+    obj.fixed.s.p <- MakeADFun(data = data.st.add.p, parameters = parameters.p,
+                            random = c("omega_s_all"),
+                            map = list(psi_t_all = factor(rep(NA, length(parameters.p$psi_t_all))),
+                                       epsilon_st_all = factor(rep(NA, length(parameters.p$epsilon_st))),
+                                       u_int_all = factor(rep(NA, length(parameters.p$u_int_all))),
+                                       u_cf_all = factor(rep(NA, length(parameters.p$u_cf_all))),
+                                       link_phi_psi = factor(rep(NA, length(parameters.p$link_phi_psi))),
+                                       log_sigma_psi = factor(rep(NA, length(parameters.p$log_sigma_psi))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters.p$log_kappa_epsilon))),
+                                       log_kappa_u_int = factor(rep(NA, length(parameters.p$log_kappa_u_int))),
+                                       log_tau_u_int = factor(rep(NA, length(parameters.p$log_tau_u_int))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters.p$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters.p$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters.p$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.s.p <- nlminb(obj.fixed.s.p$par, obj.fixed.s.p$fn, obj.fixed.s.p$gr)
+    ## Getting sdreport.
+    sdrep.fixed.s.p <- sdreport(obj.fixed.s.p)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.s.p <- plogis(obj.fixed.s.p$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.s.p, sdrep.fixed.s.p, d.full.fixed.s.p,
+             file = paste0("fit-fixed-s-p-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.s.p, sdrep.fixed.s.p, d.full.fixed.s.p, file = "fit-fixed-s-p.RData")
+    }
+    rm(obj.fixed.s.p)
+} else {
+    load(paste0("fit-fixed-s-p-species-", species, ".RData"))
+}
+data.st.add.p$fit_omega <- 0
+
+## Now putting in a spatially varying effect of temperature.
+data.st.add$fit_omega <- 1
+data.st.add$fit_int <- 1
+if (do.fixed.s.int){
+    obj.fixed.s.int <- MakeADFun(data = data.st.add, parameters = parameters.st.add,
+                            random = c("omega_s_all", "u_int_all"),
+                            map = list(psi_t_all = factor(rep(NA, length(parameters$psi_t_all))),
+                                       epsilon_st_all = factor(rep(NA, length(parameters$epsilon_st))),
+                                       u_cf_all = factor(rep(NA, length(parameters$u_cf_all))),
+                                       link_phi_psi = factor(rep(NA, length(parameters$link_phi_psi))),
+                                       log_sigma_psi = factor(rep(NA, length(parameters$log_sigma_psi))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters$log_kappa_epsilon))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.s.int <- nlminb(obj.fixed.s.int$par, obj.fixed.s.int$fn, obj.fixed.s.int$gr)
+    ## Getting sdreport.
+    sdrep.fixed.s.int <- sdreport(obj.fixed.s.int)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.s.int <- plogis(obj.fixed.s.int$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.s.int, sdrep.fixed.s.int, d.full.fixed.s.int,
+             file = paste0("fit-fixed-s-int-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.s.int, sdrep.fixed.s.int, d.full.fixed.s.int, file = "fit-fixed-s-int.RData")
+    }
+    rm(obj.fixed.s.int)
+} else {
+    load(paste0("fit-fixed-s-int-species-", species, ".RData"))
+}
+data.st.add$fit_omega <- 0
+data.st.add$fit_int <- 0
+
+## Same again but with periodic fixed effects.
+data.st.add.p$fit_omega <- 1
+data.st.add.p$fit_int <- 1
+if (do.fixed.s.int.p){
+    obj.fixed.s.int.p <- MakeADFun(data = data.st.add.p, parameters = parameters.p,
+                            random = c("omega_s_all", "u_int_all"),
+                            map = list(psi_t_all = factor(rep(NA, length(parameters.p$psi_t_all))),
+                                       epsilon_st_all = factor(rep(NA, length(parameters.p$epsilon_st))),
+                                       u_cf_all = factor(rep(NA, length(parameters.p$u_cf_all))),
+                                       link_phi_psi = factor(rep(NA, length(parameters.p$link_phi_psi))),
+                                       log_sigma_psi = factor(rep(NA, length(parameters.p$log_sigma_psi))),
+                                       link_phi_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_sigma_epsilon = factor(rep(NA, length(parameters.p$link_phi_epsilon))),
+                                       log_kappa_epsilon = factor(rep(NA, length(parameters.p$log_kappa_epsilon))),
+                                       log_kappa_u_cf = factor(rep(NA, length(parameters.p$log_kappa_u_cf))),
+                                       log_tau_u_cf = factor(rep(NA, length(parameters.p$log_tau_u_cf))),
+                                       link_gamma = factor(rep(NA, length(parameters.p$link_gamma)))),
+                            DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.fixed.s.int.p <- nlminb(obj.fixed.s.int.p$par, obj.fixed.s.int.p$fn, obj.fixed.s.int.p$gr)
+    ## Getting sdreport.
+    sdrep.fixed.s.int.p <- sdreport(obj.fixed.s.int.p)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.fixed.s.int.p <- plogis(obj.fixed.s.int.p$report()$d_full_logit)
+    ## Saving the fixed-effects model.
+    if (n.species == 1){
+        save(fit.fixed.s.int.p, sdrep.fixed.s.int.p, d.full.fixed.s.int.p,
+             file = paste0("fit-fixed-s-int-p-species-", species, ".RData"))
+    } else {
+        save(fit.fixed.s.int.p, sdrep.fixed.s.int.p, d.full.fixed.s.int.p, file = "fit-fixed-s-int-p.RData")
+    }
+    rm(obj.fixed.s.int.p)
+} else {
+    load(paste0("fit-fixed-s-int-p-species-", species, ".RData"))
+}
+data.st.add.p$fit_omega <- 0
+data.st.add.p$fit_int <- 1
 
 ## Making TMB model for an additive spatiotemporal model. This adds
 ## separate wiggly spatial and temporal fields in an additive way, so
@@ -550,6 +880,46 @@ if (do.st){
     load(paste0("fit-st-species-", species, ".RData"))
 }
 
+## Same but without fixed effects.
+data.nofixed$fit_epsilon <- 1
+if (do.st.nofixed){
+    obj.st.nofixed <- MakeADFun(data = data.nofixed,
+                        parameters = parameters.nofixed,
+                        random = "epsilon_st_all",
+                        map = list(psi_t_all = factor(rep(NA, length(parameters.nofixed$psi_t_all))),
+                                   omega_s_all = factor(rep(NA, length(parameters.nofixed$omega_s_all))),
+                                   u_int_all = factor(rep(NA, length(parameters.nofixed$u_int_all))),
+                                   u_cf_all = factor(rep(NA, length(parameters.nofixed$u_cf_all))),
+                                   link_phi_psi = factor(rep(NA, length(parameters.nofixed$link_phi_psi))),
+                                   log_sigma_psi = factor(rep(NA, length(parameters.nofixed$log_sigma_psi))),
+                                   log_kappa_omega = factor(rep(NA, length(parameters.nofixed$log_kappa_omega))),
+                                   log_sigma_omega = factor(rep(NA, length(parameters.nofixed$log_sigma_omega))),
+                                   log_kappa_u_int = factor(rep(NA, length(parameters.nofixed$log_kappa_u_int))),
+                                   log_tau_u_int = factor(rep(NA, length(parameters.nofixed$log_tau_u_int))),
+                                   log_kappa_u_cf = factor(rep(NA, length(parameters.nofixed$log_kappa_u_cf))),
+                                   log_tau_u_cf = factor(rep(NA, length(parameters.nofixed$log_tau_u_cf))),
+                                   link_gamma = factor(rep(NA, length(parameters.nofixed$link_gamma)))),
+                        inner.control = list(maxit = 50),
+                        DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.st.nofixed <- nlminb(obj.st.nofixed$par, obj.st.nofixed$fn, obj.st.nofixed$gr)
+    ## Getting sdreport.
+    sdrep.st.nofixed <- sdreport(obj.st.nofixed)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.st.nofixed <- plogis(obj.st.nofixed$report()$d_full_logit)
+    ## Saving the spatiotemporal model.
+    if (n.species == 1){
+        save(fit.st.nofixed, sdrep.st.nofixed, d.full.st.nofixed,
+             file = paste0("fit-st-nofixed-species-", species, ".RData"))
+    } else {
+        save(fit.st.nofixed, sdrep.st.nofixed, d.full.st.nofixed, file = "fit-st-nofixed.RData")
+    }
+    rm(obj.st.nofixed)
+} else {
+    load(paste0("fit-st-nofixed-species-", species, ".RData"))
+}
+data.nofixed$fit_epsilon <- 0
+
 ## Making TMB object for spatiotemporal model, similar to above, but
 ## by using a sinosoidal function of time-of-year instead of
 ## temperature. This model will take somewhere between 30 mins and 2
@@ -640,6 +1010,46 @@ if (do.int){
     rm(obj.int)
 } else {
     load(paste0("fit-int-species-", species, ".RData"))
+}
+
+## Same as above, but with no fixed effects.
+parameters.nofixed$link_phi_epsilon <- fit.st$par[names(fit.st$par) == "link_phi_epsilon"]
+parameters.nofixed$log_sigma_epsilon <- fit.st$par[names(fit.st$par) == "log_sigma_epsilon"]
+parameters.nofixed$log_kappa_epsilon <- fit.st$par[names(fit.st$par) == "log_kappa_epsilon"]
+data.nofixed$fit_epsilon <- 1
+data.nofixed$fit_int <- 1
+if (do.int.nofixed){
+    obj.int.nofixed <- MakeADFun(data = data.nofixed,
+                         parameters = parameters.nofixed,
+                         random = c("epsilon_st_all", "u_int_all"),
+                         map = list(psi_t_all = factor(rep(NA, length(parameters.nofixed$psi_t_all))),
+                                    omega_s_all = factor(rep(NA, length(parameters.nofixed$omega_s_all))),
+                                    u_cf_all = factor(rep(NA, length(parameters.nofixed$u_cf_all))),
+                                    link_phi_psi = factor(rep(NA, length(parameters.nofixed$link_phi_psi))),
+                                    log_sigma_psi = factor(rep(NA, length(parameters.nofixed$log_sigma_psi))),
+                                    log_kappa_omega = factor(rep(NA, length(parameters.nofixed$log_kappa_omega))),
+                                    log_sigma_omega = factor(rep(NA, length(parameters.nofixed$log_sigma_omega))),
+                                    log_kappa_u_cf = factor(rep(NA, length(parameters.nofixed$log_kappa_u_cf))),
+                                    log_tau_u_cf = factor(rep(NA, length(parameters.nofixed$log_tau_u_cf))),
+                                    link_gamma = factor(rep(NA, length(parameters.nofixed$link_gamma)))),
+                         inner.control = list(maxit = 50),
+                         DLL = "binomial_fit")
+    ## Fitting the model.
+    fit.int.nofixed <- nlminb(obj.int.nofixed$par, obj.int.nofixed$fn, obj.int.nofixed$gr)
+    ## Getting the sdreport.
+    sdrep.int.nofixed <- sdreport(obj.int.nofixed)
+    ## Calculating estimates of sighting probabilities given visitation.
+    d.full.int.nofixed <- plogis(obj.int.nofixed$report()$d_full_logit)
+    ## Saving the full model with the temperature-interaction field.
+    if (n.species == 1){
+        save(fit.int.nofixed, sdrep.int.nofixed, d.full.int.nofixed,
+             file = paste0("fit-int-nofixed-species-", species, ".RData"))
+    } else {
+        save(fit.int.nofixed, sdrep.int.nofixed, d.full.int.nofixed, file = "fit-int-nofixed.RData")
+    }
+    rm(obj.int.nofixed)
+} else {
+    load(paste0("fit-int-nofixed-species-", species, ".RData"))
 }
 
 ## Same as above, but with periodic regression for the fixed effects.
