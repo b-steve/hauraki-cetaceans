@@ -30,7 +30,7 @@ do.st.add.p <- FALSE
 do.st.add.int <- FALSE
 do.st.add.int.p <- FALSE
 do.st <- FALSE
-do.st.nofixed <- TRUE
+do.st.nofixed <- FALSE
 do.st.p <- FALSE
 do.int <- FALSE
 do.int.nofixed <- TRUE
@@ -881,6 +881,12 @@ if (do.st){
 }
 
 ## Same but without fixed effects.
+parameters.nofixed$betas <- matrix(fit.st$par[1])
+for (i in names(fit.st$par)[-c(1, 2)]){
+    parameters.nofixed[i] <- fit.st$par[i]
+}
+parameters.nofixed$betas
+parameters.nofixed$link_phi_epsilon
 data.nofixed$fit_epsilon <- 1
 if (do.st.nofixed){
     obj.st.nofixed <- MakeADFun(data = data.nofixed,
@@ -1013,6 +1019,7 @@ if (do.int){
 }
 
 ## Same as above, but with no fixed effects.
+parameters.nofixed$betas <- matrix(fit.int$par[1])
 parameters.nofixed$link_phi_epsilon <- fit.st$par[names(fit.st$par) == "link_phi_epsilon"]
 parameters.nofixed$log_sigma_epsilon <- fit.st$par[names(fit.st$par) == "log_sigma_epsilon"]
 parameters.nofixed$log_kappa_epsilon <- fit.st$par[names(fit.st$par) == "log_kappa_epsilon"]
