@@ -31,7 +31,7 @@ aics
 aics.selected <- vector(mode = "list", length = 2)
 names(aics.selected) <- c("aic", "diff")
 aics.selected$aic <- aics$aic[, c("fixed-p", "fixed", "fixed-s", "fixed-t", "fixed-s-p", "fixed-t-p", "fixed-s-int", "fixed-t-int", "fixed-s-int-p", "fixed-t-int-p", "st-add", "st-add-p", "st-add-int", "st-add-int-p",
-                                  "int-p-sst", "int", "st-p", "st", "sv", "sv-p")]
+                                  "int-p-sst", "int", "int-nofixed", "st-p", "st", "st-nofixed", "sv", "sv-p")]
 aics.selected$diff <- matrix(0, nrow = nrow(aics.selected$aic), ncol = ncol(aics.selected$aic))
 colnames(aics.selected$diff) <- colnames(aics.selected$aic)
 rownames(aics.selected$diff) <- rownames(aics.selected$aic)
