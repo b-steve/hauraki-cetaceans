@@ -34,7 +34,7 @@ do.st.nofixed <- FALSE
 do.st.p <- FALSE
 do.int <- FALSE
 do.int.nofixed <- TRUE
-do.int.p.sst <- FALSE
+do.int.p.sst <- TRUE
 do.int.psi <- FALSE
 do.int.p <- FALSE
 do.cf <- FALSE
@@ -931,6 +931,9 @@ data.nofixed$fit_epsilon <- 0
 ## temperature. This model will take somewhere between 30 mins and 2
 ## hours to fit, at a guess.
 parameters.p$betas <- matrix(fit.fixed.p$par, nrow = n.species, ncol = ncol(mat.p))
+parameters.p$link_phi_epsilon <- fit.st$par["link_phi_epsilon"]
+parameters.p$log_sigma_epsilon <- fit.st$par["log_sigma_epsilon"]
+parameters.p$log_kappa_epsilon <- fit.st$par["log_kappa_epsilon"]
 data.p$fit_epsilon <- 1
 if (do.st.p){
     obj.st.p <- MakeADFun(data = data.p,
@@ -979,9 +982,13 @@ if (do.st.p){
 ## than when it's colder. This model should take between 1 hour and 3
 ## hours to fit, at a guess.
 parameters$betas <- matrix(fit.st$par[names(fit.st$par) == "betas"], nrow = n.species, ncol = ncol(mat))
+parameters$betas
 parameters$link_phi_epsilon <- fit.st$par[names(fit.st$par) == "link_phi_epsilon"]
+parameters$link_phi_epsilon
 parameters$log_sigma_epsilon <- fit.st$par[names(fit.st$par) == "log_sigma_epsilon"]
+parameters$log_sigma_epsilon
 parameters$log_kappa_epsilon <- fit.st$par[names(fit.st$par) == "log_kappa_epsilon"]
+parameters$log_kappa_epsilon
 data$fit_epsilon <- 1
 data$fit_int <- 1
 if (do.int){
@@ -1061,6 +1068,9 @@ if (do.int.nofixed){
 
 ## Same as above, but with periodic regression for the fixed effects.
 parameters.p$betas <- matrix(fit.fixed.p$par, nrow = n.species, ncol = ncol(mat.p))
+parameters.p$link_phi_epsilon <- fit.st$par[names(fit.st$par) == "link_phi_epsilon"]
+parameters.p$log_sigma_epsilon <- fit.st$par[names(fit.st$par) == "log_sigma_epsilon"]
+parameters.p$log_kappa_epsilon <- fit.st$par[names(fit.st$par) == "log_kappa_epsilon"]
 data.p$fit_epsilon <- 1
 data.p$fit_int <- 1
 if (do.int.p.sst){
