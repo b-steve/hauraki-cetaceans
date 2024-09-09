@@ -3,16 +3,29 @@ library(TMB)
 library(INLA)
 library(RColorBrewer)
 library(fields)
-library(rgdal)
+library(sf)
 library(raster)
 ## Loading in data.
 load(paste0("prelim-data", ".RData"))
 load(paste0("all-species-output", ".RData"))
 load("sighting.RData")
-NZ <- readOGR(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
-source("plot-funs.r")
+NZ <- read_sf(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
+source("helper-funs.r")
+## Setting up sighting counts for the different species categories.
+y <- as.matrix(sighting.df[, c(8:11, 15)])
+## The final column is the Bryde's plus general whale categories.
+y <- cbind(y, y[, 1] + y[, 5])
 
-
+## Note that in a lot of the code below, objects related to this
+## particular data set are assumed to be sitting in the global
+## environment (e.g., an object 'y' for the sighting counts, an object
+## 'fits' provided by the process-output.r code, an object 'mesh' for
+## the spatial mesh, and so on). It's not the best programming
+## practice (sorry!) but the code was written for this particular data
+## set and there's too much specific going on to make the functions
+## work in general without putting in a lot of effort. For a new data
+## set, I recommend taking a look at the code inside calc.aics() and
+## plot.surf(), then adjusting it for your purposes.
 
 ## AICs for model selection.
 aics <- calc.aics()
@@ -41,16 +54,17 @@ aics
 ## Plotting estimated relative density for a particular month/species/model.
 plot.surf(species = 6, model = 8, month = 100, show.obs = TRUE)
 ## Plotting estimated spatially varying effect of temperature for a
-## particular species/model. Only makes sense for models 1, 5, 6, 7,
-## 8, which include such an effect.
-plot.surf(species = 1, model = 1, surf = "int")
-## Plotting estimated spatial effect. This only makes sense for models
-## 4 and 5, which have a single constant wiggly spatial field over
-## time.
-plot.surf(species = 3, model = 5, surf = "omega")
+## particular species/model. Only makes sense for models that include
+## such an effect.
+plot.surf(species = 1, model = 16, surf = "int")
+## Plotting estimated spatial effect. This only makes sense for model
+## that have a single constant wiggly spatial field over time.
+plot.surf(species = 3, model = 13, surf = "omega")
 
-## Make a distribution gif for a species/model combination.
-save.gif(species = 3, model = 5, show.obs = TRUE)
+## Make a distribution gif for a species/model combination. Here I'm
+## making a gif for each species, using the best model for that
+## species. Takes a while to run.
+for (i in 1:6) save.gif(species = i, model = which(aics$best[i, ]), show.obs = TRUE)
 ## Plot survey effort.
 plot.effort()
 
@@ -63,7 +77,8 @@ for (i in 1:6){
     plot.surf(species = i, model = 5, surf = "int")
 }
 
-## Plotting changes in occupancy at a specific location over time.
+## Plotting changes in occurrence probability at a specific location
+## over time.
 do.occ <- FALSE
 if (do.occ){
     
@@ -149,51 +164,12 @@ if (do.occ){
     }
 }
 
-
-do.int <- FALSE
-if (do.int){
-    ## This is the plot of how sighting probabilities across space are
-    ## affected by changing tempartures (for model int) or
-    ## time-of-year (model int.p). Red locations have increased
-    ## sighting probabilities as temperatures increase, blue areas
-    ## have increased sighting probabilities as temperature decreases
-    ## (for model int). Likewise for model int.p, but the
-    ## increases/decreases are related to the plotted sinusoidal
-    ## function.
-    
-    ## Choose a species. Same codes as above.
-    s <- 1
-    
-    ## Side-by-side plots for models int and int-p.
-    par(mfrow = c(3, 2))
-    plot.surf(species = s, model = 8, surf = "int")
-    plot.surf(species = s, model = 6, surf = "int")
-    ## Plotting average temperature for each month.
-    average.month.temp <- numeric(12)
-    for (i in 1:12){
-        average.month.temp[i] <- mean(month.temp[jmonth == i])
-    }
-    plot(average.month.temp, type = "l")
-    ## Plotting related sinusoidal function.
-    gamma <- rep.summary[[s]][["int-p"]][rownames(rep.summary[[s]][["int-p"]]) == "gamma", 1]
-    xx <- seq(0, 2*pi, length.out = 1000)
-    yy <- cos(xx - gamma)
-    plot(xx, yy, type = "l")
-     
-    ## Same for cosfiltered temperature effect.
-    ## This is for a seasonal redistribution.
-    plot.surf(species = s, model = 1, surf = "int")
-    ## This is for a fluctuation with cosfiltered temperature.
-    plot.surf(species = s, model = 1, surf = "int-cf")
-}
-
 do.st.add <- TRUE
 if (do.st.add){
     ## Plots of the spatial omega field and temporal psi field for the
     ## st-add models.
-    s <- 3
-    ## Either model 4 or 5 for an omega field.
-    m <- 5
+    s <- 1
+    m <- 11
     plot.surf(species = s, model = m, surf = "omega")
 
     ## Plotting temporal process.

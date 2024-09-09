@@ -45,8 +45,9 @@ plot.coast <- function(){
     bbox.big[, 2] <- c(bbox.orig[1, 2] - diff(range(bbox.orig[, 2])),
                        bbox.orig[2, 2] + diff(range(bbox.orig[, 2])))
     s.bbox <- SpatialPoints(bbox.big)
-    NZ <- crop(NZ, bbox(s.bbox))
-    plot(NZ, col = "grey", add = TRUE)
+    NZ <- suppressWarnings(st_crop(NZ, c(xmin = bbox.big[1, 1], xmax = bbox.big[2, 1],
+                                         ymin = bbox.big[1, 2], ymax = bbox.big[2, 2])))
+    suppressWarnings(plot(NZ, col = "grey", add = TRUE))
 }
 
 ## A function to plot a distribution for a given month.
