@@ -6,41 +6,31 @@ calc.aics <- function(){
     ## Model information.
     n.models <- length(fit[[1]])
     model.names <- names(fit[[1]])
-    ## Calculating AICs and determining convergence.
+    ## Calculating AICs.
     aic.tab <- matrix(0, nrow = n.species, ncol = n.models)
     aic.diff.tab <- matrix(0, nrow = n.species, ncol = n.models)
-    converged.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
     fitted.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
     aic <- function(x) 2*x$objective + 2*length(x$par)
     for (i in 1:n.species){
         for (j in 1:n.models){
             if (is.null(fit[[i]][[j]])){
                 aic.tab[i, j] <- NA
-                converged.tab[i, j] <- NA
             } else {
                 fitted.tab[i, j] <- TRUE
                 aic.tab[i, j] <- aic(fit[[i]][[j]])
-                converged.tab[i , j] <- !any(is.na(rep.summary[[i]][[j]]))
             }
         }
         aic.diff.tab[i, ] <- aic.tab[i, ] - min(aic.tab[i, ], na.rm = TRUE)
     }
     aic.best.tab <- matrix(FALSE, nrow = n.species, ncol = n.models)
-    rownames(aic.tab) <- rownames(converged.tab) <- rownames(aic.diff.tab) <- 
-        rownames(aic.best.tab) <- rownames(fitted.tab) <- species.names[1:n.species]
-    colnames(aic.tab) <- colnames(converged.tab) <- colnames(aic.diff.tab) <- 
-        colnames(aic.best.tab) <- colnames(fitted.tab) <- model.names
-    aic.converged.tab <- aic.tab
-    aic.converged.tab[!converged.tab] <- NA
-    aic.best.converged.tab <- aic.best.tab
-    
+    rownames(aic.tab) <- rownames(aic.diff.tab) <- rownames(aic.best.tab) <-
+        rownames(fitted.tab) <- species.names[1:n.species]
+    colnames(aic.tab) <- colnames(aic.diff.tab) <- colnames(aic.best.tab) <-
+        colnames(fitted.tab) <- model.names    
     for (i in 1:n.species){
         aic.best.tab[i, which(aic.tab[i, ] == min(aic.tab[i, ], na.rm = TRUE))] <- TRUE
-        aic.best.converged.tab[i, which(aic.converged.tab[i, ] ==
-                                        min(aic.converged.tab[i, ], na.rm = TRUE))] <- TRUE
     }
-    list(aic = aic.tab, diff = aic.diff.tab, converged = converged.tab, fitted = fitted.tab,
-         best = aic.best.tab, best.converged = aic.best.converged.tab)
+    list(aic = aic.tab, diff = aic.diff.tab, fitted = fitted.tab, best = aic.best.tab)
 }
 
 plot.coast <- function(){
