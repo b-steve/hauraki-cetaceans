@@ -153,3 +153,12 @@ plot.effort <- function(cols = NULL){
     box()
     plot.coast()
 }
+
+## Matern covariance function with nu = 1.
+matern.cov <- function(d, sigma, kappa){
+    nu <- 1
+    out <- (sigma^2/(2^(nu - 1) * gamma(nu))) * ((kappa * abs(d))^nu) * 
+        besselK(kappa * abs(d), nu)
+    out[d == 0] <- sigma^2
+    out
+}

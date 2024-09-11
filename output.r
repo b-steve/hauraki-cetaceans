@@ -4,7 +4,6 @@ library(INLA)
 library(RColorBrewer)
 library(fields)
 library(sf)
-library(raster)
 ## Loading in data.
 load(paste0("prelim-data", ".RData"))
 load(paste0("all-species-output", ".RData"))
@@ -43,6 +42,7 @@ aics <- calc.aics()
 ## - $best.converged can be ignored.
 aics
 
+s.names <- c("Bryde's", "Common dolphin", "Bottlenose dolphin", "Orca", "Whale", "Bryde's plus whale")
 ## Choose a species:
 ## 1 = "byrde",
 ## 2 = "cdolp",
@@ -71,10 +71,10 @@ plot.effort()
 ## For example, here's a plot of the spatially varying effect of
 ## temperature for all species.
 par(mfrow = c(3, 2))
-## Just using the model 5 for these, which isn't actually the best
+## Just using the model 16 for these, which isn't actually the best
 ## model for every species.
 for (i in 1:6){
-    plot.surf(species = i, model = 5, surf = "int")
+    plot.surf(species = i, model = 16, surf = "int")
 }
 
 ## Plotting changes in occurrence probability at a specific location
@@ -178,3 +178,37 @@ if (do.st.add){
     abline(v = 12*(0:20), lty = "dotted")
 }
 
+png("epsilon-space.png")
+cols <- brewer.pal(6, "Set1")
+for (s in 1:6){
+    m <- which(aics$best[s, ])
+    kappa <- exp(fit[[s]][[m]]$par["log_kappa_epsilon"])
+    dd <- seq(0, 1, length.out = 1000)
+    yy <- matern.cov(dd, 1, kappa)
+    lat.km <- 110.574
+    if (s == 1){
+        plot(lat.km*dd, yy, type = "l", xlab = "Distance (km)", ylab = "Correlation", ylim = c(0, 1), col = cols[s])
+    } else {
+        lines(lat.km*dd, yy, col = cols[s])
+    }
+}
+legend("topright", legend = s.names, col = cols, lty = rep(1, 6))
+dev.off()
+
+png("epsilon-time.png")
+for (s in 1:6){
+    m <- which(aics$best[s, ])
+    link.phi <- fit[[s]][[m]]$par["link_phi_epsilon"]
+    phi <- 2*exp(link.phi)/(1 + exp(link.phi)) - 1
+    tt <- 0:12
+    yy <- phi^tt
+    if (s == 1){
+        plot(tt, yy, ylim = c(-0.5, 1), col = cols[s], xlab = "Time (months)", ylab = "Correlation")
+    } else {
+        points(tt, yy, col = cols[s])
+    }
+    print(phi)
+}
+abline(h = 0, lty = "dotted")
+legend("bottomright", legend = s.names, col = cols, pch = rep(1, 6))
+dev.off()
