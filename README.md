@@ -20,7 +20,7 @@ file `pixelcoord.RData`.
 
 ## Code
 
-Code to fit the models described in the manuscript is available in `fit.r`. The models involve Gaussian random fields containing spatiotemporal random effects. Computation of model likelihoods requires approximating high-dimensional integrals, achieved using the R package `TMB`. 
+Code to fit the models described in the manuscript is available in `fit.r`. The models involve Gaussian random fields containing spatiotemporal random effects. Computation of model likelihoods requires approximating high-dimensional integrals, achieved using the R package `TMB`. The `TMB` model-fitting code is written in C++, and is available in `binomial_fit.cpp`, which is compiled and then executed for each fitted model within `fit.r`.
 
 Such models can be computationally expensive to fit, and ours require more RAM than is typically available on a standard desktop or laptop computer. Our code is structured for use on the high-performance computing resources provided by New Zealand's eScience Infrastructure. Fitting all models we consider to a species' sightings can be achieved by running the following at a command line:
 ```bash
@@ -33,4 +33,7 @@ Replacing `i` with the following values to select the species:
 - 4: Killer whale
 - 5: Whale
 - 6: Bryde's + whale
+
+To save the bother of anyone else having to fit these models, the resulting `.RData` files (one for each combination of model and species) is available in the `fits/` directory.
+
 
