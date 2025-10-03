@@ -23,7 +23,7 @@ file `pixelcoord.RData`.
 Code to fit the models described in the manuscript is available in `fit.r`. The models involve Gaussian random fields containing spatiotemporal random effects. Computation of model likelihoods requires approximating high-dimensional integrals, achieved using the R package `TMB`. 
 
 Such models can be computationally expensive to fit, and ours require more RAM than is typically available on a standard desktop or laptop computer. Our code is structured for use on the high-performance computing resources provided by New Zealand's eScience Infrastructure. Fitting all models we consider to a species' sightings can be achieved by running the following at a command line:
-r```
+```r
 R --vanilla < fit.r --args i
 ```
 Replacing `i` with the following values to select the species:
