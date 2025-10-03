@@ -13,6 +13,7 @@ We split the Hauraki Gulf into 1381 discrete cells. The data frame `sighting.df`
 * `pixel_id`: An ID number for the cell corresponding to the row.
 * `total.trips`: The total number of trips conducted in that month.
 * Columns beginning with `n.trips`: The total number of trips that sighted a particular species in that month and cell. For example, `n.trips.cdolp` is the number of trips that sighted common dolphin.
+* `av.vesselprob`: The cell's visitation probability, calculated by taking a random sample of trips and computing the proportion that visited the cell corresponding to the row.
 
 The spatial coordinates of each of the 1381 cells are available in the
 file `pixelcoord.RData`.
