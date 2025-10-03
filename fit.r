@@ -13,31 +13,31 @@ library(RColorBrewer)
 
 ## Set whether or not to fit various models. If not, need an .RData
 ## file.
-do.fixed <- FALSE
-do.fixed.p <- FALSE
-do.sv <- FALSE
-do.sv.p <- FALSE
-do.fixed.t <- FALSE
-do.fixed.t.p <- FALSE
-do.fixed.t.int <- FALSE
-do.fixed.t.int.p <- FALSE
-do.fixed.s <- FALSE
-do.fixed.s.p <- FALSE
-do.fixed.s.int <- FALSE
-do.fixed.s.int.p <- FALSE
-do.st.add <- FALSE
-do.st.add.p <- FALSE
-do.st.add.int <- FALSE
-do.st.add.int.p <- FALSE
-do.st <- FALSE
-do.st.nofixed <- FALSE
-do.st.p <- FALSE
-do.int <- FALSE
+do.fixed <- TRUE
+do.fixed.p <- TRUE
+do.sv <- TRUE
+do.sv.p <- TRUE
+do.fixed.t <- TRUE
+do.fixed.t.p <- TRUE
+do.fixed.t.int <- TRUE
+do.fixed.t.int.p <- TRUE
+do.fixed.s <- TRUE
+do.fixed.s.p <- TRUE
+do.fixed.s.int <- TRUE
+do.fixed.s.int.p <- TRUE
+do.st.add <- TRUE
+do.st.add.p <- TRUE
+do.st.add.int <- TRUE
+do.st.add.int.p <- TRUE
+do.st <- TRUE
+do.st.nofixed <- TRUE
+do.st.p <- TRUE
+do.int <- TRUE
 do.int.nofixed <- TRUE
 do.int.p.sst <- TRUE
-do.int.psi <- FALSE
-do.int.p <- FALSE
-do.cf <- FALSE
+do.int.psi <- TRUE
+do.int.p <- TRUE
+do.cf <- TRUE
 
 ## Loading in the data.
 load("sighting.RData")
