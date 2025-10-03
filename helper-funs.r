@@ -30,7 +30,7 @@ calc.aics <- function(){
     for (i in 1:n.species){
         aic.best.tab[i, which(aic.tab[i, ] == min(aic.tab[i, ], na.rm = TRUE))] <- TRUE
     }
-    list(aic = aic.tab, diff = aic.diff.tab, fitted = fitted.tab, best = aic.best.tab)
+    list(aic = aic.tab, diff = aic.diff.tab, best = aic.best.tab)
 }
 
 plot.coast <- function(){
@@ -107,6 +107,12 @@ plot.surf <- function(species = 1, model = 1, month = 1, surf = "d", show.obs = 
     }
 }
 
+plot.temporal <- function(species = 1, model = 1){
+    psi.t.est <- rand.summary[[species]][[model]][rownames(rand.summary[[species]][[model]]) == "psi_t_all", 1]
+    plot(psi.t.est, type = "l")
+    abline(v = 12*(0:20), lty = "dotted")
+}
+
 save.gif <- function(species = 1, model = 1, file = paste0("species-", species, "-mod-", model, ".gif"),
                      show.obs = FALSE, zlim = NULL, cols = NULL, main = NULL){
     dir.create("tmp")
@@ -117,7 +123,7 @@ save.gif <- function(species = 1, model = 1, file = paste0("species-", species, 
         jpeg(paste0("tmp/plot", gif.index, ".jpg"))
         plot.surf(species = species, model = model, month = i, show.obs = show.obs,
                   zlim = zlim, cols = cols, main = main)       
-        cat(i, "of", n.months, "\n")
+        cat("Creating frame", i, "of", n.months, "\n")
         dev.off()
     }
     system(paste0("convert -delay 20 -loop 0 tmp/*.jpg ", file))

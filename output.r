@@ -3,10 +3,11 @@ library(TMB)
 library(INLA)
 library(RColorBrewer)
 library(fields)
+library(sp)
 library(sf)
 ## Loading in data.
-load(paste0("prelim-data", ".RData"))
-load(paste0("all-species-output", ".RData"))
+load("prelim-data.RData")
+load("all-species-output.RData")
 load("sighting.RData")
 NZ <- read_sf(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
 source("helper-funs.r")
@@ -15,53 +16,63 @@ y <- as.matrix(sighting.df[, c(8:11, 15)])
 ## The final column is the Bryde's plus general whale categories.
 y <- cbind(y, y[, 1] + y[, 5])
 
-## Note that in a lot of the code below, objects related to this
-## particular data set are assumed to be sitting in the global
-## environment (e.g., an object 'y' for the sighting counts, an object
-## 'fits' provided by the process-output.r code, an object 'mesh' for
-## the spatial mesh, and so on). It's not the best programming
-## practice (sorry!) but the code was written for this particular data
-## set and there's too much specific going on to make the functions
-## work in general without putting in a lot of effort. For a new data
-## set, I recommend taking a look at the code inside calc.aics() and
-## plot.surf(), then adjusting it for your purposes.
+## The following data frame indicates which effects appear in which
+## models.
+model.df
 
 ## AICs for model selection.
 aics <- calc.aics()
 ## This is a list with a bunch of components:
 ## - $aic is the AIC value for each species-model pair.
 ## - $diff is the difference between a model's AIC and the model with
-##   the best AIC for that species.
+##   the best AIC for that species, and reflects the AIC table in the
+##   manuscript.
 ## - $best has a TRUE entry in the best model (by AIC) for each
 ##   species.
 aics
 
 ## A vector of species names.
-s.names <- c("Bryde's whale", "Common dolphin", "Bottlenose dolphin", "Killer Whale", "Whale", "Bryde's whale +")
-## Choose a species:
+s.names <- c("Bryde's whale", "Common dolphin", "Bottlenose dolphin",
+             "Killer Whale", "Whale", "Bryde's whale +")
+## For lots of the codes below, use these values for the species argument:
 ## 1 = "byrde",
 ## 2 = "cdolp",
 ## 3 = "bdolp",
 ## 4 = "orca",
 ## 5 = "whale"
 ## 6 = "brydeplus"
-## Choose a model via names(fit[[1]])
+
+## And choose a model number from model.df
+
 ## Plotting estimated relative density for a particular month/species/model.
-#plot.surf(species = 6, model = 8, month = 100, show.obs = TRUE)
+plot.surf(species = 1, model = 21, month = 123)
 ## Plotting estimated spatially varying effect of temperature for a
 ## particular species/model. Only makes sense for models that include
-## such an effect.
-#plot.surf(species = 1, model = 16, surf = "int")
-## Plotting estimated spatial effect. This only makes sense for model
-## that have a single constant wiggly spatial field over time.
-#plot.surf(species = 3, model = 13, surf = "omega")
+## such an effect, where the 'spatially.varying' column is "SST" in
+## model.df.
+plot.surf(species = 1, model = 16, surf = "int")
+## Plotting estimated spatial effect. This only makes sense for models
+## that have a single constant wiggly spatial field over time, where
+## the 'spatiotemporal' column is "Space" or "Space+Time" in model.df.
+plot.surf(species = 1, model = 14, surf = "omega")
 
-## Make a distribution gif for a species/model combination. Here I'm
-## making a gif for each species, using the best model for that
-## species. Takes a while to run.
-#for (i in 1:6) save.gif(species = i, model = which(aics$best[i, ]), show.obs = TRUE)
+## Plotting estimated temporal effect. This only makes sense for
+## models that have a wiggly temporal process over time, where the
+## 'spatiotemporal' column is "Time" or "Space+Time" in model.df.
+plot.temporal(species = 1, model = 16)
+
+## Make a distribution gif for a species/model combination. The code
+## below creates a gif for each species, using the best model for that
+## species. Takes a while to run. Note that this function requires the
+## command-line tool convert. You can check by running the following
+## in R:
+## system("convert --version")
+## If available, you will see output related to your version of
+## convert. The gif is saved to the current R working directory.
+for (i in 1:6) save.gif(species = i, model = which(aics$best[i, ]))
+
 ## Plot survey effort.
-#plot.effort()
+plot.effort()
 
 ## For example, here's a plot of the spatially varying effect of
 ## temperature for all species.
@@ -83,7 +94,6 @@ s.names <- c("Bryde's whale", "Common dolphin", "Bottlenose dolphin", "Killer Wh
 ## To see the lat/long coordinates of each location, look in mesh$loc.
 
 ## The locations IDs from above go here.
-pdf(file = "ts-plot.pdf", width = 7)
 ps <- c(310, 311, 292, 295)
 n.plots <- length(ps)
 cols <- brewer.pal(7, "Set1")[-6][order(order(s.names))]
@@ -157,21 +167,8 @@ for (i in 1:n.plots){
         }
     }
 }
-dev.off()
-
-## Plots of the spatial omega field and temporal psi field for the
-## st-add models.
-s <- 1
-m <- 11
-plot.surf(species = s, model = m, surf = "omega")
-
-## Plotting temporal process.
-psi.t.est <- rand.summary[[s]][[m]][rownames(rand.summary[[s]][[m]]) == "psi_t_all", 1]
-plot(psi.t.est, type = "l")
-abline(v = 12*(0:20), lty = "dotted")
 
 ## Plotting a spatial covariance function.
-pdf("space-cov.pdf")
 for (s in order(s.names)){
     m <- which(aics$best[s, ])
     kappa <- exp(fit[[s]][[m]]$par["log_kappa_epsilon"])
@@ -185,10 +182,8 @@ for (s in order(s.names)){
     }
 }
 legend("topright", legend = sort(s.names), col = cols[order(s.names)], lty = rep(1, 6))
-dev.off()
 
 ## Plotting a temporal covariance function.
-pdf("temp-cov.pdf")
 for (s in order(s.names)){
     m <- which(aics$best[s, ])
     link.phi <- fit[[s]][[m]]$par["link_phi_epsilon"]
@@ -204,4 +199,3 @@ for (s in order(s.names)){
 }
 abline(h = 0, lty = "dotted")
 legend("bottomright", legend = sort(s.names), col = cols[order(s.names)], pch = rep(1, 6))
-dev.off()
