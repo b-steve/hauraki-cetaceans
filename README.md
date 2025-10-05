@@ -40,11 +40,11 @@ To save the bother of anyone else having to fit these models, the resulting `.RD
 
 Code to extract the inference available from our models is contained
 in `model-output.r`. Model output includes
-- Model selection
-- Plotting estimates of spatial effects, including spatially varying effects of temperature on cetacean occurrence
-- Plotting estimates of temporal effects
-- Animated GIFs of estimated spatiotemporal estimates of species occurrence
-- Plotting spatial variation in effort
-- Plotting estimated spatial and temporal covariance functions
+- Model selection,
+- Plotting estimates of spatial effects, including spatially varying effects of temperature on cetacean occurrence,
+- Plotting estimates of temporal effects,
+- Animated GIFs of estimated spatiotemporal estimates of species occurrence,
+- Plotting spatial variation in effort, and
+- Plotting estimated spatial and temporal covariance functions.
 
 
