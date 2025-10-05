@@ -18,6 +18,10 @@ We split the Hauraki Gulf into 1381 discrete cells. The data frame `sighting.df`
 The spatial coordinates of each of the 1381 cells are available in the
 file `pixelcoord.RData`.
 
+## Dependencies
+
+The following R packages are required to run the code in this repository: `fields`, `INLA`, `RColorBrewer`, `TMB`, `sf`, and `sp`.
+
 ## Code
 
 Code to fit the models described in the manuscript is available in `fit.r`. The models involve Gaussian random fields containing spatiotemporal random effects. Computation of model likelihoods requires approximating high-dimensional integrals, achieved using the R package `TMB`. The `TMB` model-fitting code is written in C++, and is available in `binomial_fit.cpp`, which is compiled and then executed for each fitted model within `fit.r`.
