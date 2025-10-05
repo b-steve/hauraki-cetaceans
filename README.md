@@ -34,6 +34,17 @@ Replacing `i` with the following values to select the species:
 - 5: Whale
 - 6: Bryde's + whale
 
-To save the bother of anyone else having to fit these models, the resulting `.RData` files (one for each combination of model and species) is available in the `fits/` directory.
+To save the bother of anyone else having to fit these models, the resulting `.RData` files (one for each combination of model and species) is available in the `fits/` directory. The code in `process-model-files.r` processes the model files in the `fit/` directory, combining all the necessary information into a single file, `all-species-output.RData`. This file is not available in this repositry because it is quite large (approx 300 MB), so it must be created locally by the user.
+
+## Inference
+
+Code to extract the inference available from our models is contained
+in `model-output.r`. Model output includes
+- Model selection
+- Plotting estimates of spatial effects, including spatially varying effects of temperature on cetacean occurrence
+- Plotting estimates of temporal effects
+- Animated GIFs of estimated spatiotemporal estimates of species occurrence
+- Plotting spatial variation in effort
+- Plotting estimated spatial and temporal covariance functions
 
 
