@@ -168,3 +168,122 @@ matern.cov <- function(d, sigma, kappa){
     out[d == 0] <- sigma^2
     out
 }
+
+loc.id.selector <- function(){
+    plot.surf(species = 1, model = 1, month = 1)
+    text(mesh$loc[, 1], mesh$loc[, 2], labels = 1:nrow(mesh$loc), cex = 0.75)
+}
+
+plot.temporal.at.locs <- function(loc.ids, models, separate.maps = TRUE, same.scale = FALSE){
+    ## A vector of species names.
+    s.names <- c("Bryde's whale", "Common dolphin", "Bottlenose dolphin",
+                 "Killer Whale", "Whale", "Bryde's whale +")
+    n.plots <- length(loc.ids)
+    cols <- brewer.pal(7, "Set1")[-6][order(order(s.names))]
+    ## Mesh projection.
+    proj <- inla.mesh.projector(mesh)
+    if (separate.maps){
+        mat.layout <- matrix(c(rep(1:(2*n.plots), times = rep(c(3, 1), n.plots))),
+                             ncol = 4, byrow = TRUE)
+    } else {
+        mat.layout <- cbind(matrix(rep(c(1, 3:(n.plots + 1)), each = 3),
+                                   ncol = 3, byrow = TRUE),
+                            c(2, rep(0, n.plots - 1)))
+    }
+    opar <- par()
+    layout(mat.layout, heights = rep(1, 4), widths = rep(1, 4))
+    par(mar = c(0, 0, 0.25, 0.5), oma = c(6, 6, 0, 0.25), las = 1, xaxs = "i")
+    all.ds <- array(0, dim = c(n.plots, n.months, 6))
+    for (i in 1:n.plots){
+        p <- loc.ids[i]
+        for (s in order(s.names)){
+            m <- models[s]
+            all.ds[i, , s] <- d.full[[s]][[m]][1, p, ]
+        }
+    }
+    for (i in 1:n.plots){
+        p <- loc.ids[i]
+        p.loc <- mesh$loc[p, ]
+        plot.new()
+        if (same.scale){
+            ylim <- c(0, max(all.ds))
+        } else {
+            ylim <- c(0, max(all.ds[i, , ]))
+        }
+        plot.window(xlim = c(1, n.months),
+                    ylim = ylim)
+        abline(v = 6 + (0:30)*12, col = "lightgrey")
+        for (s in order(s.names)){
+            lines(1:n.months, all.ds[i, , s], col = cols[s])
+        }
+        box()
+        if (i == n.plots){
+            axis(1, at = 6 + (0:19)*12, labels = FALSE)
+            axis(1, labels = as.character(2000:2019), at = 12*(0:19), tick = FALSE, las = 3)
+            mtext("Year", side = 1, line = 4, srt = 90, las = 0)
+            mtext("p(s, t)", side = 2, line = 4, las = 0, outer = TRUE)
+        }
+        axis(2)
+        if (i == 1){
+            legend("topright", sort(s.names),
+                   col = cols[order(s.names)], lty = rep(1, 6), bg = "white")
+        }
+        if (separate.maps){
+            plot.new()
+            plot.window(xlim = range(proj$x), ylim = range(proj$y), asp = 1)
+            box()
+            plot.coast()
+            pts.cols <- rep(cols[1], 4)
+            pts.cols[i] <- cols[3]
+            points(mesh$loc[loc.ids, 1], mesh$loc[loc.ids, 2], col = pts.cols, pch = 16, cex = 2)
+        } else {
+            if (i == 1){
+                plot.new()
+                plot.window(xlim = bbox.small[, 1], ylim = bbox.small[, 2], asp = 1)
+                box()
+                plot(NZ, col = "grey", add = TRUE)
+                text(mesh$loc[loc.ids, 1], mesh$loc[loc.ids, 2], labels = as.character(1:n.plots))
+            }
+        }
+    }
+    suppressWarnings(par(opar))
+}
+
+plot.spatial.cov <- function(models){
+    s.names <- c("Bryde's whale", "Common dolphin", "Bottlenose dolphin",
+                 "Killer Whale", "Whale", "Bryde's whale +")
+    cols <- brewer.pal(7, "Set1")[-6][order(order(s.names))]
+    for (s in order(s.names)){
+        m <- models[s]
+        kappa <- exp(fit[[s]][[m]]$par["log_kappa_epsilon"])
+        dd <- seq(0, 1, length.out = 1000)
+        yy <- matern.cov(dd, 1, kappa)
+        lat.km <- 110.574
+        if (s == order(s.names)[1]){
+            plot(lat.km*dd, yy, type = "l", xlab = "Distance (km)", ylab = "Correlation", ylim = c(0, 1), col = cols[s])
+        } else {
+            lines(lat.km*dd, yy, col = cols[s])
+        }
+    }
+    legend("topright", legend = sort(s.names), col = cols[order(s.names)], lty = rep(1, 6))
+}
+
+plot.temporal.cov <- function(models){
+    s.names <- c("Bryde's whale", "Common dolphin", "Bottlenose dolphin",
+                 "Killer Whale", "Whale", "Bryde's whale +")
+    cols <- brewer.pal(7, "Set1")[-6][order(order(s.names))]
+    for (s in order(s.names)){
+        m <- models[s]
+        link.phi <- fit[[s]][[m]]$par["link_phi_epsilon"]
+        phi <- 2*exp(link.phi)/(1 + exp(link.phi)) - 1
+        tt <- 0:12
+        yy <- phi^tt
+        if (s == order(s.names)[1]){
+            plot(tt, yy, ylim = c(-0.5, 1), col = cols[s], xlab = "Time (months)", ylab = "Correlation", type = "b")
+        } else {
+            points(tt, yy, col = cols[s], type = "b")
+        }
+    }
+    abline(h = 0, lty = "dotted")
+    legend("bottomright", legend = sort(s.names), col = cols[order(s.names)], pch = rep(1, 6))
+}
