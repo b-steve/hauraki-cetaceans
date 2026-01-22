@@ -5,11 +5,8 @@ library(RColorBrewer)
 library(fields)
 library(sp)
 library(sf)
-## Loading in data.
-load("prelim-data.RData")
-load("all-species-output.RData")
-load("sighting.RData")
-NZ <- read_sf(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
+
+## Loading in data and helper functions.
 source("helper-funs.r")
 ## Setting up sighting counts for the different species categories.
 y <- as.matrix(sighting.df[, c(8:11, 15)])
@@ -62,6 +59,18 @@ for (i in 1:6){
    plot.surf(species = i, model = 16, surf = "int")
 }
 
+## Here's a plot we used for the paper for the species that exhibited
+## spatially varying effects.
+models <- apply(aics$best, 1, which)
+par.save <- par(mfrow = c(2, 2), mar = c(3, 4, 2, 2), oma = c(0.1, 0.1, 0.1, 1.1))
+plot.title <- c("A. Bryde's whale", "B. Common dolphin", "C. Whale", "D. Bryde's whale +")
+k <- 1
+for (i in c(1, 2, 5, 6)){
+    plot.surf(species = i, model = models[i], surf = "int", main = plot.title[k])
+    k <- k + 1
+}
+par(par.save)
+
 ## Plotting estimated temporal effect. This only makes sense for
 ## models that have a wiggly temporal process over time, where the
 ## 'spatiotemporal' column is "Time" or "Space+Time" in model.df.
@@ -99,3 +108,5 @@ plot.spatial.cov(models)
 ## Plotting temporal covariance functions. Selected models must inclue
 ## temporal random effects.
 plot.temporal.cov(models)
+
+
