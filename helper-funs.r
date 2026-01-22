@@ -1,3 +1,10 @@
+## Loading in data.
+load("prelim-data.RData")
+load("all-species-output.RData")
+load("sighting.RData")
+NZ <- read_sf(dsn = "./kx-nz-seacoast-poly-SHP", layer = "nz-seacoast-poly")
+study.site <- read_sf(dsn = "kx-nz-seacoast-poly-SHP/erase-square", layer = "erase_square2")
+
 ## A function to calculate AICs from different models for different species.
 calc.aics <- function(){
     ## Species information.
@@ -44,9 +51,11 @@ plot.coast <- function(){
                        bbox.orig[2, 1] + diff(range(bbox.orig[, 1])))
     bbox.big[, 2] <- c(bbox.orig[1, 2] - diff(range(bbox.orig[, 2])),
                        bbox.orig[2, 2] + diff(range(bbox.orig[, 2])))
-    s.bbox <- SpatialPoints(bbox.big)
     NZ <- suppressWarnings(st_crop(NZ, c(xmin = bbox.big[1, 1], xmax = bbox.big[2, 1],
                                          ymin = bbox.big[1, 2], ymax = bbox.big[2, 2])))
+    study.site <- suppressWarnings(st_crop(study.site, c(xmin = bbox.big[1, 1], xmax = bbox.big[2, 1],
+                                                         ymin = bbox.big[1, 2], ymax = bbox.big[2, 2])))
+    suppressWarnings(plot(study.site, col = "white", border = "white", add = TRUE))
     suppressWarnings(plot(NZ, col = "grey", add = TRUE))
 }
 
