@@ -81,6 +81,8 @@ plot.surf <- function(species = 1, model = 1, month = 1, surf = "d", show.obs = 
         }
         if (is.null(zlim)){
             zlim <- range(z)
+            max.zlim.diff <- max(abs(c(1 - zlim[1], zlim[2] - 1)))
+            zlim <- 1 + c(-1, 1)*max.zlim.diff
         }
     } else if (surf == "int-cf"){
         tau.cf <- exp(rep.summary[[species]][[model]][rownames(rep.summary[[species]][[model]]) == "log_tau_u_cf", 1])
