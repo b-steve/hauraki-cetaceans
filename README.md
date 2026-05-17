@@ -2,7 +2,7 @@
 
 This repository contains data and code to accompany the following manuscript:
 
-* Colbert, J., Stevenson, B. C., Bowen, M., and Constantine, R. C. (in submission) Redistribution of cetaceans based on ocean temperature using spatiotemporal regression models.
+* Colbert, J., Stevenson, B. C., Bowen, M., and Constantine, R. C. (2026) Redistribution of cetaceans based on ocean temperature using spatiotemporal regression models. *Diversity and Distributions*, *32*(2), e70145. [(link)](https://doi.org/10.1111/ddi.70145)
 
 ## Data
 
